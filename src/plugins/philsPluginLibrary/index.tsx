@@ -28,10 +28,10 @@ const plugin = definePlugin({
     authors: [Devs.philhk],
     patches: [
         {
-            find: "--custom-app-panels-height",
+            find: "this.renderChannelButtons()",
             replacement: {
-                match: /{}\)}\),/,
-                replace: "{})}),$self.replacedUserPanelComponent(),"
+                match: /this.renderChannelButtons\(\)/,
+                replace: "this.renderChannelButtons(), $self.replacedUserPanelComponent()"
             }
         },
         {
