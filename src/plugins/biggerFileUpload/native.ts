@@ -95,6 +95,64 @@ export async function uploadFileToCatboxNative(_, url: string, fileBuffer: Array
 }
 
 
+export async function uploadFileToVikingFileNative(
+    _,
+    fileBuffer: ArrayBuffer,
+    fileName: string,
+    userHash: string = ""
+): Promise<any> {
+
+
+    const params = new URLSearchParams();
+    params.append("size", fileBuffer.byteLength.toString());
+
+    const getUploadUrlResponse = await fetch("https://vikingfile.com/api/get-upload-url", {
+        method: "POST",
+        body: params
+    });
+
+    const uploadInfo = await getUploadUrlResponse.json();
+    const { uploadId, key, partSize, urls } = uploadInfo;
+
+    // Step 2: Upload each part
+    const etags: { PartNumber: number; ETag: string; }[] = [];
+    for (let i = 0; i < urls.length; i++) {
+        const start = i * partSize;
+        const end = Math.min(start + partSize, fileBuffer.byteLength);
+        const partBuffer = fileBuffer.slice(start, end);
+
+        const partResponse = await fetch(urls[i], {
+            method: "PUT",
+            body: partBuffer
+        });
+        if (!partResponse.ok) throw new Error(`Upload part ${i + 1} failed`);
+
+        const etag = partResponse.headers.get("ETag");
+        if (!etag) throw new Error(`No ETag received for part ${i + 1}`);
+        etags.push({ PartNumber: i + 1, ETag: etag.replace(/"/g, "") });
+    }
+
+    // Step 3: Complete upload
+    const completeData = new URLSearchParams();
+    completeData.append("key", key);
+    completeData.append("uploadId", uploadId);
+    etags.forEach((p, index) => {
+        completeData.append(`parts[${index}][PartNumber]`, p.PartNumber.toString());
+        completeData.append(`parts[${index}][ETag]`, p.ETag);
+    });
+    completeData.append("name", fileName);
+    completeData.append("user", userHash);
+
+    const completeResponse = await fetch("https://vikingfile.com/api/complete-upload", {
+        method: "POST",
+        body: completeData
+    });
+
+    const result = await completeResponse.json();
+    return result;
+}
+
+
 export async function uploadFileCustomNative(_, url: string, fileBuffer: ArrayBuffer, fileName: string, fileType: string, fileFormName: string, customArgs: Record<string, string>, customHeaders: Record<string, string>, responseType: string, urlPath: string[]): Promise<string> {
     try {
         const formData = new FormData();

@@ -21,6 +21,8 @@ const Native = VencordNative.pluginHelpers.BiggerFileUpload as PluginNative<type
 
 const UploadStore = findByPropsLazy("getUploads");
 const OptionClasses = findByPropsLazy("optionName", "optionIcon", "optionLabel");
+const videoExtensions = [".mp4", ".mkv", ".webm", ".avi", ".mov", ".flv", ".wmv", ".m4v", ".mpg", ".mpeg", ".3gp", ".ogv"];
+const uploadErrorMessage = "**Unable to upload file.** Check the console for more info.\n-# This is likely an issue with your network connection, firewall, or VPN.";
 
 function createCloneableStore(initialState: any) {
     const store = { ...initialState };
@@ -250,6 +252,7 @@ function SettingsComponent(props: { setValue(v: any): void; }) {
                         { label: "Catbox (Up to 200MB)", value: "Catbox" },
                         { label: "Litterbox (Temporary | Up to 1GB)", value: "Litterbox" },
                         { label: "GoFile (Temporary | Unlimited | No Embeds)", value: "GoFile" },
+                        { label: "VikingFile (Temporary | Unlimited | No Embeds)", value: "VikingFile" },
                     ]}
                     placeholder="Select the file uploader service"
                     className={Margins.bottom16}
@@ -326,6 +329,24 @@ function SettingsComponent(props: { setValue(v: any): void; }) {
                             select={newValue => updateSetting("litterboxTime", newValue)}
                             isSelected={v => v === settings.store.litterboxTime}
                             serialize={v => v}
+                        />
+                    </Forms.FormSection>
+                </>
+            )}
+
+            {/* VikingFile Settings */}
+            {fileUploader === "VikingFile" && (
+                <>
+                    <Forms.FormSection title="VikingFile User hash (optional)">
+                        <Forms.FormText>
+                            Insert your personal VikingFile account's hash to save all uploads to your VikingFile account.
+                        </Forms.FormText>
+                        <TextInput
+                            type="text"
+                            value={settings.store.vikingfileUserHash || ""}
+                            placeholder="Insert User Hash"
+                            onChange={newValue => updateSetting("vikingfileUserHash", newValue)}
+                            className={Margins.top16}
                         />
                     </Forms.FormSection>
                 </>
@@ -507,6 +528,12 @@ const settings = definePluginSettings({
         description: "Duration for files on Litterbox before they are deleted",
         hidden: true
     },
+    vikingfileUserHash: {
+        type: OptionType.STRING,
+        default: "",
+        description: "User hash for VikingFile uploader (optional)",
+        hidden: true
+    },
     customUploaderName: {
         type: OptionType.STRING,
         default: "",
@@ -607,7 +634,7 @@ async function uploadFileToGofile(file: File, channelId: string) {
         } else {
             console.error("Upload failed:", uploadResult);
             sendBotMessage(channelId, {
-                content: "**Unable to upload file.** Check the console for more info.\n-# This is likely an issue with your network connection, firewall, or VPN."
+                content: uploadErrorMessage
             });
             showToast("File Upload Failed", Toasts.Type.FAILURE);
         }
@@ -616,7 +643,7 @@ async function uploadFileToGofile(file: File, channelId: string) {
     } catch (error) {
         console.error("Upload error:", error);
         sendBotMessage(channelId, {
-            content: "**Unable to upload file.** Check the console for more info.\n-# This is likely an issue with your network connection, firewall, or VPN."
+            content: uploadErrorMessage
         });
         showToast("File Upload Failed", Toasts.Type.FAILURE);
         UploadManager.clearAll(channelId, DraftType.SlashCommand);
@@ -650,7 +677,7 @@ async function uploadFileToCatbox(file: File, channelId: string, temporary: bool
         );
 
         if (uploadResult.startsWith("https://") || uploadResult.startsWith("http://")) {
-            const videoExtensions = [".mp4", ".mkv", ".webm", ".avi", ".mov", ".flv", ".wmv", ".m4v", ".mpg", ".mpeg", ".3gp", ".ogv"];
+
             let finalUrl = uploadResult;
 
             if (videoExtensions.some(ext => finalUrl.endsWith(ext))) {
@@ -663,7 +690,7 @@ async function uploadFileToCatbox(file: File, channelId: string, temporary: bool
         } else {
             console.error("Upload failed, likely due to network or firewall:", uploadResult);
             sendBotMessage(channelId, {
-                content: "**Unable to upload file.** Check the console for more info.\n-# This is likely an issue with your network connection, firewall, or VPN."
+                content: uploadErrorMessage
             });
             showToast("File Upload Failed", Toasts.Type.FAILURE);
         }
@@ -672,12 +699,51 @@ async function uploadFileToCatbox(file: File, channelId: string, temporary: bool
     } catch (error) {
         console.error("Upload error:", error);
         sendBotMessage(channelId, {
-            content: "**Unable to upload file.** Check the console for more info.\n-# This is likely an issue with your network connection, firewall, or VPN."
+            content: uploadErrorMessage
         });
         showToast("File Upload Failed", Toasts.Type.FAILURE);
         UploadManager.clearAll(channelId, DraftType.SlashCommand);
     }
 }
+
+
+async function uploadFileToVikingFile(file: File, channelId: string) {
+    try {
+        const arrayBuffer = await file.arrayBuffer();
+        const fileName = file.name;
+        const userHash = settings.store.vikingfileUserHash;
+
+
+        const uploadResult = await Native.uploadFileToVikingFileNative(
+            arrayBuffer,
+            fileName,
+            userHash
+        );
+
+        if (uploadResult?.url) {
+            setTimeout(() => sendTextToChat(`${uploadResult.url} `), 10);
+            showToast("File Successfully Uploaded!", Toasts.Type.SUCCESS);
+        } else {
+            console.error("Upload failed:", uploadResult);
+            sendBotMessage(channelId, {
+                content:
+                    uploadErrorMessage
+            });
+            showToast("File Upload Failed", Toasts.Type.FAILURE);
+        }
+
+        UploadManager.clearAll(channelId, DraftType.SlashCommand);
+    } catch (error) {
+        console.error("Upload error:", error);
+        sendBotMessage(channelId, {
+            content:
+                uploadErrorMessage
+        });
+        showToast("File Upload Failed", Toasts.Type.FAILURE);
+        UploadManager.clearAll(channelId, DraftType.SlashCommand);
+    }
+}
+
 
 async function uploadFileCustom(file: File, channelId: string) {
     try {
@@ -729,6 +795,9 @@ async function uploadFile(file: File, channelId: string) {
             break;
         case "Litterbox":
             await uploadFileToCatbox(file, channelId, true);
+            break;
+        case "VikingFile":
+            await uploadFileToVikingFile(file, channelId);
             break;
         case "Custom":
             await uploadFileCustom(file, channelId);
