@@ -20,7 +20,6 @@ import { Settings } from "@api/Settings";
 import ErrorBoundary from "@components/ErrorBoundary";
 import { Devs } from "@utils/constants";
 import { useTimer } from "@utils/react";
-import { formatDurationMs } from "@utils/text";
 import definePlugin, { OptionType } from "@utils/types";
 import { React } from "@webpack/common";
 
@@ -96,6 +95,6 @@ export default definePlugin({
             deps: [channelId]
         });
 
-        return <p style={{ margin: 0 }}>Connected for <span style={{ fontFamily: "var(--font-code)" }}>{formatDurationMs(time, Settings.plugins.CallTimer.format === "human")}</span></p>;
+        return <p style={{ margin: 0, fontFamily: "var(--font-code)" }}>{formatDuration(time)}</p>;
     }
 });
