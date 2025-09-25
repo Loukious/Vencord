@@ -20,6 +20,9 @@ export interface VoiceState extends DiscordRecord {
 
     isVoiceMuted(): boolean;
     isVoiceDeafened(): boolean;
+
+    oldChannelId?: string;
+    guildId?: string;
 }
 
 export class VoiceStateStore extends FluxStore {

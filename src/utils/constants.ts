@@ -438,9 +438,9 @@ export const Devs = /* #__PURE__*/ Object.freeze({
         name: "coolelectronics",
         id: 696392247205298207n,
     },
-    Max: {
-        name: "Max",
-        id: 1189527130611138663n,
+    MaxHerbold: {
+        name: "MaxHerbold",
+        id: 1189527130611138663n
     },
     Av32000: {
         name: "Av32000",
