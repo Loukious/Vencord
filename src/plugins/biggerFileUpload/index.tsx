@@ -8,6 +8,7 @@ import { ApplicationCommandInputType, ApplicationCommandOptionType, sendBotMessa
 import { NavContextMenuPatchCallback } from "@api/ContextMenu";
 import { definePluginSettings } from "@api/Settings";
 import { Flex } from "@components/Flex";
+import { FormSwitch } from "@components/FormSwitch";
 import { OpenExternalIcon } from "@components/Icons";
 import { Devs } from "@utils/constants";
 import { insertTextIntoChatInputBox, sendMessage } from "@utils/discord";
@@ -15,7 +16,7 @@ import { Margins } from "@utils/margins";
 import definePlugin, { OptionType, PluginNative } from "@utils/types";
 import { CommandArgument, CommandContext } from "@vencord/discord-types";
 import { findByPropsLazy } from "@webpack";
-import { Button, DraftType, Forms, Menu, PermissionsBits, PermissionStore, React, Select, SelectedChannelStore, showToast, Switch, TextInput, Toasts, UploadManager, useEffect, useState } from "@webpack/common";
+import { Button, DraftType, Forms, Menu, PermissionsBits, PermissionStore, React, Select, SelectedChannelStore, showToast, TextInput, Toasts, UploadManager, useEffect, useState } from "@webpack/common";
 
 const Native = VencordNative.pluginHelpers.BiggerFileUpload as PluginNative<typeof import("./native")>;
 
@@ -264,14 +265,13 @@ function SettingsComponent(props: { setValue(v: any): void; }) {
 
             {/* Auto-Send Settings */}
             <Forms.FormSection>
-                <Switch
+                <FormSwitch
+                    title="Auto-Send Uploads To Chat"
+                    description="Whether to automatically send the links with the uploaded files to chat instead of just pasting them into the chatbox."
                     value={settings.store.autoSend === "Yes"}
                     onChange={(enabled: boolean) => updateSetting("autoSend", enabled ? "Yes" : "No")}
-                    note="Whether to automatically send the links with the uploaded files to chat instead of just pasting them into the chatbox."
                     hideBorder={true}
-                >
-                    Auto-Send Uploads To Chat
-                </Switch>
+                />
             </Forms.FormSection>
 
             {/* GoFile Settings */}
