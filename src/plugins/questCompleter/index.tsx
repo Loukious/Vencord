@@ -49,15 +49,6 @@ function getQuestById(questId: string) {
     return QuestsStore.quests.get(questId);
 }
 
-function getLeftQuests() {
-    const QuestsStore = findByProps("getQuest");
-    return [...QuestsStore.quests.values()].find(quest =>
-        quest.userStatus?.enrolledAt &&
-        !quest.userStatus?.completedAt &&
-        new Date(quest.config?.expiresAt).getTime() > Date.now()
-    );
-}
-
 function encodeStreamKey(e): string {
     const { streamType: t, guildId: n, channelId: r, ownerId: s } = e;
     switch (t) {
@@ -163,10 +154,10 @@ export default definePlugin({
         runningQuests.clear();
     },
 
-    async openCompleteQuest(questId?: string) {
-        var quest = questId ? getQuestById(questId) : getLeftQuests();
+    async openCompleteQuest(questId: string) {
+        var quest = getQuestById(questId);
         if (!quest) {
-            showToast("No active quest found!");
+            showToast("Quest not found!");
             return;
         }
 
@@ -215,7 +206,7 @@ export default definePlugin({
             } else {
                 showToast("Successfully auto enrolled in the quest!");
                 await new Promise(r => setTimeout(r, 2000));
-                quest = questId ? getQuestById(questId) : getLeftQuests();
+                quest = getQuestById(questId);
             }
         }
 
@@ -514,7 +505,7 @@ export default definePlugin({
                 const progress = Math.min(elapsed, secondsNeeded);
 
                 try {
-                    const res = await questsHeartbeat({ questId: quest.id, streamKey, terminal: false });
+                    await questsHeartbeat({ questId: quest.id, streamKey, terminal: false });
                     showQuestNotification(
                         "Progress",
                         `${Math.floor(progress / 60)}m/${Math.floor(secondsNeeded / 60)}m (${Math.floor(progress / secondsNeeded * 100)}%)`
