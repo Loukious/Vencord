@@ -248,7 +248,7 @@ export default definePlugin({
         const secondsNeeded = quest.config.taskConfigV2.tasks[taskName].target;
         const secondsDone = quest.userStatus?.progress?.[taskName]?.value ?? 0;
         const questsHeartbeat = findByCode("QUESTS_HEARTBEAT");
-        const questsVideoProgress = findByCode("QUESTS_VIDEO_PROGRESS");
+        // const questsVideoProgress = findByCode("QUESTS_VIDEO_PROGRESS");
         const RunningGameStore = findStoreLazy("RunningGameStore");
 
         const runningQuest: RunningQuest = {
@@ -268,65 +268,74 @@ export default definePlugin({
         };
 
         if (taskName === "WATCH_VIDEO" || taskName === "WATCH_VIDEO_ON_MOBILE") {
-            const tolerance = 7, speed = 10;
-            const enrolledAt = quest.userStatus?.enrolledAt
-                ? new Date(quest.userStatus.enrolledAt).getTime()
-                : Date.now() - 20 * 1000;
+            const STEP_SIZE = 7; // seconds advanced each tick
+            const GRACE_WINDOW = 10; // how far ahead the fake progress can be
+            const UPDATE_DELAY = 1; // seconds between each update
 
-            const diff = Math.floor((Date.now() - enrolledAt) / 1000);
-            const startingPoint = Math.min(Math.max(Math.ceil(secondsDone), diff), secondsNeeded);
-            const startTime = Date.now();
+            const startedAt = new Date(quest.userStatus?.enrolledAt ?? Date.now() - 15 * 1000).getTime();
+            let progress = quest.userStatus?.progress?.[taskName]?.value ?? 0;
+            const estimatedTime = Math.ceil((secondsNeeded - progress) / STEP_SIZE * UPDATE_DELAY);
+            let done = false;
 
-            console.log(`[Quest] Starting ${taskName}: ${questName} at ${startingPoint}/${secondsNeeded}s`);
-
-            const updateProgress = async () => {
-                const elapsed = (Date.now() - startTime) / 1000;
-                const currentProgress = Math.min(
-                    secondsNeeded,
-                    startingPoint + elapsed * (speed / tolerance)
-                );
-
-                console.log(`[Quest] Progress: ${currentProgress.toFixed(1)}s`);
-
-                try {
-                    const res = await RestAPI.post({
-                        url: `/quests/${quest.id}/video-progress`,
-                        body: { timestamp: currentProgress }
-                    });
-
-                    if (res.status === 400) {
-                        console.warn(`[Quest] Server rejected progress (${currentProgress.toFixed(1)}s). Retrying...`);
-                        return; // don't advance, retry on next interval
-                    }
-
-                    if (res.body?.completed_at || currentProgress >= secondsNeeded) {
-                        console.log("[Quest] Completing quest");
-                        clearInterval(runningQuest.interval);
-                        runningQuests.delete(quest.id);
-                        showQuestNotification("Completed", "Quest finished!");
-                        return;
-                    }
-
-                    showQuestNotification(
-                        "Progress",
-                        `${Math.floor(currentProgress)}/${secondsNeeded}s (${Math.floor(currentProgress / secondsNeeded * 100)}%)`
-                    );
-
-                } catch (error) {
-                    console.error("[Quest] Error:", error);
-                    runningQuests.delete(quest.id);
-                    clearInterval(runningQuest.interval);
-                }
-            };
-
-            // Start loop
-            updateProgress();
-            runningQuest.interval = setInterval(updateProgress, tolerance * 1000);
+            console.log(`[Quest] Starting ${taskName}: ${questName} at ${progress}/${secondsNeeded}s`);
 
             showQuestNotification(
                 "Starting",
-                `Auto-completing in ~${Math.ceil((secondsNeeded - startingPoint) / speed * tolerance)}s`
+                `Auto-completing in ${estimatedTime}s`
             );
+
+            try {
+                while (progress < secondsNeeded && !done) {
+                    const elapsed = Math.floor((Date.now() - startedAt) / 1000);
+                    const maxReachable = elapsed + GRACE_WINDOW;
+
+                    if (maxReachable >= progress + STEP_SIZE) {
+                        try {
+                            const next = Math.min(secondsNeeded, progress + STEP_SIZE + Math.random());
+                            const res = await RestAPI.post({
+                                url: `/quests/${quest.id}/video-progress`,
+                                body: { timestamp: next }
+                            });
+
+                            progress = next;
+                            done = !!res.body?.completed_at;
+
+                            const percent = Math.floor((progress / secondsNeeded) * 100);
+                            showQuestNotification("Progress", `${Math.floor(progress)}s / ${secondsNeeded}s (${percent}%)`);
+
+                            if (done) {
+                                console.log("[Quest] Server confirmed completion.");
+                                break;
+                            }
+                        } catch (err) {
+                            console.warn("[Quest] Failed to update video progress:", err);
+                            break;
+                        }
+                    }
+
+                    if (progress >= secondsNeeded) break;
+                    await new Promise(r => setTimeout(r, UPDATE_DELAY * 1000));
+                }
+                if (!done) {
+                    try {
+                        await RestAPI.post({
+                            url: `/quests/${quest.id}/video-progress`,
+                            body: { timestamp: secondsNeeded }
+                        });
+                        console.log("[Quest] Sent final completion timestamp.");
+                    } catch (err) {
+                        console.error("[Quest] Final sync failed:", err);
+                    }
+                }
+                runningQuests.delete(quest.id);
+                showQuestNotification("Completed", "Quest finished!");
+                console.log(`[Quest] ${questName} completed.`);
+
+            } catch (error) {
+                console.error("[Quest] Error:", error);
+                runningQuests.delete(quest.id);
+                clearInterval(runningQuest.interval);
+            }
 
         } else if (taskName === "PLAY_ON_DESKTOP") {
             if (!isApp) {
