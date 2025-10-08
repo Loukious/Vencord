@@ -37,10 +37,8 @@ export default definePlugin({
     interceptActivity(originalHandler: Function) {
         return (activityData: { activity: any, socketId: string; }) => {
             if (activityData?.activity) {
-                if (activityData.activity.application_id === "997798118185771059") {
-                    if (activityData.activity.details &&
-                        !activityData.activity.details.toLowerCase().includes("menu")) {
-
+                if (activityData.activity.name === "Stremio") {
+                    if (activityData.activity.timestamps?.end || activityData.activity.state?.toLowerCase().includes("paused") || activityData.activity.assets?.small_text?.toLowerCase().includes("paused")) {
                         activityData.activity.name = activityData.activity.details;
 
                         if (activityData.activity.state) {
