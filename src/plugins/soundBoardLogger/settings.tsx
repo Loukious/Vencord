@@ -49,7 +49,7 @@ const settings = definePluginSettings({
 
 
             return (
-                <Forms.FormSection>
+                <section>
                     <Forms.FormTitle>The amount of soundboard ids you want to save at a time (0 lets you save infinite)</Forms.FormTitle>
                     <TextInput
                         type="number"
@@ -60,7 +60,7 @@ const settings = definePluginSettings({
                     />
                     {shouldShowWarning && <Forms.FormText style={{ color: "var(--text-danger)" }}>Warning! Setting the number to a lower value will reset the log!</Forms.FormText>}
                     {errorMessage && <Forms.FormText style={{ color: "var(--text-danger)" }}>{errorMessage}</Forms.FormText>}
-                </Forms.FormSection>
+                </section>
             );
         }
 

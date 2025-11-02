@@ -242,8 +242,8 @@ function SettingsComponent(props: { setValue(v: any): void; }) {
     return (
         <Flex flexDirection="column">
             {/* File Uploader Selection */}
-            <Forms.FormDivider />
-            <Forms.FormSection title="Upload Limit Bypass">
+            <section />
+            <section title="Upload Limit Bypass">
                 <Forms.FormText>
                     Select the external file uploader service to be used to bypass the upload limit.
                 </Forms.FormText>
@@ -261,10 +261,10 @@ function SettingsComponent(props: { setValue(v: any): void; }) {
                     isSelected={v => v === fileUploader}
                     serialize={v => v}
                 />
-            </Forms.FormSection>
+            </section>
 
             {/* Auto-Send Settings */}
-            <Forms.FormSection>
+            <section>
                 <FormSwitch
                     title="Auto-Send Uploads To Chat"
                     description="Whether to automatically send the links with the uploaded files to chat instead of just pasting them into the chatbox."
@@ -272,12 +272,12 @@ function SettingsComponent(props: { setValue(v: any): void; }) {
                     onChange={(enabled: boolean) => updateSetting("autoSend", enabled ? "Yes" : "No")}
                     hideBorder={true}
                 />
-            </Forms.FormSection>
+            </section>
 
             {/* GoFile Settings */}
             {fileUploader === "GoFile" && (
                 <>
-                    <Forms.FormSection title="GoFile Token (optional)">
+                    <section title="GoFile Token (optional)">
                         <Forms.FormText>
                             Insert your personal GoFile account's token to save all uploads to your GoFile account.
                         </Forms.FormText>
@@ -288,14 +288,14 @@ function SettingsComponent(props: { setValue(v: any): void; }) {
                             onChange={newValue => updateSetting("gofileToken", newValue)}
                             className={Margins.top16}
                         />
-                    </Forms.FormSection>
+                    </section>
                 </>
             )}
 
             {/* Catbox Settings */}
             {fileUploader === "Catbox" && (
                 <>
-                    <Forms.FormSection title="Catbox User hash (optional)">
+                    <section title="Catbox User hash (optional)">
                         <Forms.FormText>
                             Insert your personal Catbox account's hash to save all uploads to your Catbox account.
                         </Forms.FormText>
@@ -306,14 +306,14 @@ function SettingsComponent(props: { setValue(v: any): void; }) {
                             onChange={newValue => updateSetting("catboxUserHash", newValue)}
                             className={Margins.top16}
                         />
-                    </Forms.FormSection>
+                    </section>
                 </>
             )}
 
             {/* Litterbox Settings */}
             {fileUploader === "Litterbox" && (
                 <>
-                    <Forms.FormSection title="File Expiration Time">
+                    <section title="File Expiration Time">
                         <Forms.FormText>
                             Select how long it should take for your uploads to expire and get deleted.
                         </Forms.FormText>
@@ -330,14 +330,14 @@ function SettingsComponent(props: { setValue(v: any): void; }) {
                             isSelected={v => v === settings.store.litterboxTime}
                             serialize={v => v}
                         />
-                    </Forms.FormSection>
+                    </section>
                 </>
             )}
 
             {/* VikingFile Settings */}
             {fileUploader === "VikingFile" && (
                 <>
-                    <Forms.FormSection title="VikingFile User hash (optional)">
+                    <section title="VikingFile User hash (optional)">
                         <Forms.FormText>
                             Insert your personal VikingFile account's hash to save all uploads to your VikingFile account.
                         </Forms.FormText>
@@ -348,14 +348,14 @@ function SettingsComponent(props: { setValue(v: any): void; }) {
                             onChange={newValue => updateSetting("vikingfileUserHash", newValue)}
                             className={Margins.top16}
                         />
-                    </Forms.FormSection>
+                    </section>
                 </>
             )}
 
             {/* Custom Uploader Settings */}
             {fileUploader === "Custom" && (
                 <>
-                    <Forms.FormSection title="Custom Uploader Name">
+                    <section title="Custom Uploader Name">
                         <TextInput
                             type="text"
                             value={customUploaderStore.get().name}
@@ -363,9 +363,9 @@ function SettingsComponent(props: { setValue(v: any): void; }) {
                             onChange={(newValue: string) => customUploaderStore.set({ name: newValue })}
                             className={Margins.bottom16}
                         />
-                    </Forms.FormSection>
+                    </section>
 
-                    <Forms.FormSection title="Request URL">
+                    <section title="Request URL">
                         <TextInput
                             type="text"
                             value={customUploaderStore.get().requestURL}
@@ -373,9 +373,9 @@ function SettingsComponent(props: { setValue(v: any): void; }) {
                             onChange={(newValue: string) => customUploaderStore.set({ requestURL: newValue })}
                             className={Margins.bottom16}
                         />
-                    </Forms.FormSection>
+                    </section>
 
-                    <Forms.FormSection title="File Form Name">
+                    <section title="File Form Name">
                         <TextInput
                             type="text"
                             value={customUploaderStore.get().fileFormName}
@@ -383,9 +383,9 @@ function SettingsComponent(props: { setValue(v: any): void; }) {
                             onChange={(newValue: string) => customUploaderStore.set({ fileFormName: newValue })}
                             className={Margins.bottom16}
                         />
-                    </Forms.FormSection>
+                    </section>
 
-                    <Forms.FormSection title="Response type">
+                    <section title="Response type">
                         <Select
                             options={[
                                 { label: "Text", value: "Text" },
@@ -397,9 +397,9 @@ function SettingsComponent(props: { setValue(v: any): void; }) {
                             isSelected={(v: string) => v === customUploaderStore.get().responseType}
                             serialize={(v: string) => v}
                         />
-                    </Forms.FormSection>
+                    </section>
 
-                    <Forms.FormSection title="URL (JSON path)">
+                    <section title="URL (JSON path)">
                         <TextInput
                             type="text"
                             value={customUploaderStore.get().url}
@@ -407,9 +407,9 @@ function SettingsComponent(props: { setValue(v: any): void; }) {
                             onChange={(newValue: string) => customUploaderStore.set({ url: newValue })}
                             className={Margins.bottom16}
                         />
-                    </Forms.FormSection>
+                    </section>
 
-                    <Forms.FormSection title="Thumbnail URL (JSON path)">
+                    <section title="Thumbnail URL (JSON path)">
                         <TextInput
                             type="text"
                             value={customUploaderStore.get().thumbnailURL}
@@ -417,7 +417,7 @@ function SettingsComponent(props: { setValue(v: any): void; }) {
                             onChange={(newValue: string) => customUploaderStore.set({ thumbnailURL: newValue })}
                             className={Margins.bottom16}
                         />
-                    </Forms.FormSection>
+                    </section>
 
                     <Forms.FormDivider />
                     <Forms.FormTitle>Custom Uploader Arguments</Forms.FormTitle>
