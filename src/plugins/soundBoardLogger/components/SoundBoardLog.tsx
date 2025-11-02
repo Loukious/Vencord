@@ -6,11 +6,12 @@
 
 import ErrorBoundary from "@components/ErrorBoundary";
 import { Flex } from "@components/Flex";
+import { Paragraph } from "@components/Paragraph";
 import { Margins } from "@utils/margins";
 import { classes, copyWithToast } from "@utils/misc";
 import { closeModal, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalRoot, ModalSize, openModal } from "@utils/modal";
 import { User } from "@vencord/discord-types";
-import { Button, Clickable, ContextMenuApi, FluxDispatcher, Forms, Menu, Text, Tooltip, useEffect, UserUtils, useState } from "@webpack/common";
+import { Button, Clickable, ContextMenuApi, FluxDispatcher, Menu, Text, Tooltip, useEffect, UserUtils, useState } from "@webpack/common";
 
 import { clearLoggedSounds, getLoggedSounds } from "../store";
 import { addListener, AvatarStyles, cl, downloadAudio, getEmojiUrl, getSoundboardVolume, playSound, removeListener, SoundLogEntry, UserSummaryItem } from "../utils";
@@ -134,7 +135,7 @@ export default function SoundBoardLog({ data, closeModal }) {
                                     src={getEmojiUrl(item.emoji)}
                                     className={cl("sound-emoji")}
                                 />
-                                <Forms.FormText variant="text-xs/medium" className={cl("sound-id")}>{item.soundId}</Forms.FormText>
+                                <Paragraph size="md" className={cl("sound-id")}>{item.soundId}</Paragraph>
                             </Flex>
                             <UserSummaryItem
                                 users={itemUsers.slice(0, avatarsMax)} // Trimmed array to the size of max
@@ -180,7 +181,7 @@ export default function SoundBoardLog({ data, closeModal }) {
                             src="https://raw.githubusercontent.com/fres621/assets/main/shiggy.png"
                             height="200px"
                         />
-                        <Forms.FormText variant="text-sm/medium" style={{ color: "var(--text-muted)" }} className={Margins.bottom16}>No sounds logged yet. Join a voice chat to start logging!</Forms.FormText>
+                        <Paragraph size="md" style={{ color: "var(--text-muted)" }} className={Margins.bottom16}>No sounds logged yet. Join a voice chat to start logging!</Paragraph>
                     </div>
                 }
             </ModalContent >

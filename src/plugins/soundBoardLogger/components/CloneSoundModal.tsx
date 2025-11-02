@@ -5,6 +5,7 @@
  */
 
 import { Flex } from "@components/Flex";
+import { HeadingTertiary } from "@components/Heading";
 import { Margins } from "@utils/margins";
 import { classes } from "@utils/misc";
 import { closeModal, ModalCloseButton, ModalContent, ModalHeader, ModalRoot, openModal } from "@utils/modal";
@@ -84,12 +85,12 @@ export function CloneSoundModal({ item, closeModal }: { item: SoundEvent, closeM
             </Flex>
         </ModalHeader>
         <ModalContent>
-            <Forms.FormTitle className={Margins.top16}>Cloning Sound</Forms.FormTitle>
+            <HeadingTertiary className={Margins.top16}>Cloning Sound</HeadingTertiary>
             <CustomInput style={{ display: "flex", flexDirection: "row", gap: "10px", alignItems: "center" }} className={Margins.bottom16}>
                 <img src={getEmojiUrl(item.emoji)} width="24" height="24" />
                 <Text>{item.soundId}</Text>
             </CustomInput>
-            <Forms.FormTitle required={true} aria-required="true">Add to server:</Forms.FormTitle>
+            <HeadingTertiary aria-required="true">Add to server:</HeadingTertiary>
             <SearchableSelect
                 options={
                     ownedGuilds.map(guild => ({
@@ -115,11 +116,11 @@ export function CloneSoundModal({ item, closeModal }: { item: SoundEvent, closeM
             />
             <Flex flexDirection="row" style={{ gap: "10px", justifyContent: "space-between" }} className={classes(Margins.top16, Margins.bottom16)}>
                 <div style={{ flex: 1 }}>
-                    <Forms.FormTitle required={true} aria-required="true">Sound Name</Forms.FormTitle>
+                    <HeadingTertiary aria-required="true">Sound Name</HeadingTertiary>
                     <TextInput value={soundName} onChange={v => setSoundName(v)} placeholder="Sound Name" />
                 </div>
                 <div style={{ flex: 1 }}>
-                    <Forms.FormTitle>Related Emoji</Forms.FormTitle>
+                    <HeadingTertiary>Related Emoji</HeadingTertiary>
                     <Popout
                         position="bottom"
                         align="right"

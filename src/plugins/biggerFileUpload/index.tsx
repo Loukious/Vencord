@@ -7,6 +7,7 @@
 import { ApplicationCommandInputType, ApplicationCommandOptionType, sendBotMessage } from "@api/Commands";
 import { NavContextMenuPatchCallback } from "@api/ContextMenu";
 import { definePluginSettings } from "@api/Settings";
+import { Divider } from "@components/Divider";
 import { Flex } from "@components/Flex";
 import { FormSwitch } from "@components/FormSwitch";
 import { OpenExternalIcon } from "@components/Icons";
@@ -419,7 +420,7 @@ function SettingsComponent(props: { setValue(v: any): void; }) {
                         />
                     </section>
 
-                    <Forms.FormDivider />
+                    <Divider />
                     <Forms.FormTitle>Custom Uploader Arguments</Forms.FormTitle>
                     {Object.entries(customUploaderStore.get().args).map(([key, value], index) => (
                         <div key={index}>
@@ -440,7 +441,7 @@ function SettingsComponent(props: { setValue(v: any): void; }) {
                         </div>
                     ))}
 
-                    <Forms.FormDivider />
+                    <Divider />
                     <Forms.FormTitle>Headers</Forms.FormTitle>
                     {Object.entries(customUploaderStore.get().headers).map(([key, value], index) => (
                         <div key={index}>
@@ -461,7 +462,7 @@ function SettingsComponent(props: { setValue(v: any): void; }) {
                         </div>
                     ))}
 
-                    <Forms.FormDivider />
+                    <Divider />
                     <Forms.FormTitle>Import ShareX Config</Forms.FormTitle>
                     <Button
                         onClick={triggerFileUpload}

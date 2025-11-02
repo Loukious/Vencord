@@ -6,6 +6,7 @@
 
 import ErrorBoundary from "@components/ErrorBoundary";
 import { Flex } from "@components/Flex";
+import { Paragraph } from "@components/Paragraph";
 import { closeModal, ModalContent, ModalRoot, openModal } from "@utils/modal";
 import { Clickable, Forms } from "@webpack/common";
 
@@ -52,11 +53,11 @@ export default function MoreUsersModal({ item, users, onClickUser, closeModal }:
                                         alt=""
                                         style={{ cursor: "pointer" }}
                                     />
-                                    <Forms.FormText variant="text-xs/medium" style={{ cursor: "pointer" }}>{user.username}</Forms.FormText>
+                                    <Paragraph size="md" style={{ cursor: "pointer" }}>{user.username}</Paragraph>
                                 </Flex>
-                                <Forms.FormText variant="text-xs/medium" style={{ cursor: "pointer" }}>
+                                <Paragraph size="md" style={{ cursor: "pointer" }}>
                                     Played {currentUser.plays.length} {currentUser.plays.length === 1 ? "time" : "times"}
-                                </Forms.FormText>
+                                </Paragraph>
                             </div>
                         </Clickable>
                     );

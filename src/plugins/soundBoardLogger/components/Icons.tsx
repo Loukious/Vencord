@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+import { classes } from "@utils/misc";
 import { Button, ButtonWrapperClasses, Tooltip } from "@webpack/common";
 
 
@@ -37,11 +38,9 @@ export function IconWithTooltip({ text, icon, onClick }) {
                 <Button
                     aria-haspopup="dialog"
                     aria-label={text}
-                    size=""
-                    look={Button.Looks.BLANK}
                     onMouseEnter={onMouseEnter}
                     onMouseLeave={onMouseLeave}
-                    innerClassName={ButtonWrapperClasses.button}
+                    className={classes(ButtonWrapperClasses.button)}
                     onClick={onClick}
                     style={{ paddingRight: "13px" }}
                 >
