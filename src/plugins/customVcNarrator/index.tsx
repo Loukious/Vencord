@@ -20,11 +20,13 @@ import { Devs } from "@utils/constants";
 import { Logger } from "@utils/Logger";
 import { Margins } from "@utils/margins";
 import { wordsToTitle } from "@utils/text";
-import definePlugin, { ReporterTestable } from "@utils/types";
+import definePlugin, { PluginNative, ReporterTestable } from "@utils/types";
 import { Button, ChannelStore, Forms, GuildMemberStore, SelectedChannelStore, SelectedGuildStore, useMemo, UserStore, VoiceStateStore } from "@webpack/common";
-import { ReactElement } from "react";
 
 import { getCurrentVoice, settings } from "./settings";
+
+const Native = VencordNative.pluginHelpers.CustomVcNarrator as PluginNative<typeof import("./native")>;
+
 
 interface VoiceStateChangeEvent {
     userId: string;
@@ -51,29 +53,10 @@ async function speak(text: string) {
             throw new Error("No voice selected");
         }
 
-        const response = await fetch("https://tiktok-tts.weilnet.workers.dev/api/generation", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                text: text,
-                voice: voice.id
-            })
-        });
-
-        if (!response.ok) {
-            throw new Error(`TTS API error: ${response.status} ${response.statusText}`);
-        }
-
-        const data = await response.json();
-
-        if (!data?.success) {
-            throw new Error(data?.error || "Unknown TTS API error");
-        }
+        const base64Audio = await Native.getAudio(text, "tt-" + voice.id);
 
         // Convert base64 audio data to ArrayBuffer
-        const binaryString = atob(data.data);
+        const binaryString = atob(base64Audio);
         const bytes = new Uint8Array(binaryString.length);
         for (let i = 0; i < binaryString.length; i++) {
             bytes[i] = binaryString.charCodeAt(i);
@@ -259,10 +242,8 @@ export default definePlugin({
             [],
         );
 
-        const errorComponent: ReactElement<any> | null = null;
-
         return (
-            <Forms.FormSection>
+            <section>
                 <Forms.FormText>
                     You can customise the spoken messages below. You can disable specific messages by setting them to nothing
                 </Forms.FormText>
@@ -285,8 +266,7 @@ export default definePlugin({
                         </Button>
                     ))}
                 </div>
-                {errorComponent}
-            </Forms.FormSection>
+            </section>
         );
     }
 });

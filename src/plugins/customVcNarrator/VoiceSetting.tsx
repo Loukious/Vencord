@@ -46,7 +46,7 @@ function ComplexPicker({ voice, voices }: PickerProps) {
     const groupedVoices = useMemo(() => groupBy(voices, voice => voice.lang), [voices]);
 
     const languageNameMapping = useMemo(() => {
-        const list = [] as { name: string, friendlyName: string }[];
+        const list = [] as { name: string, friendlyName: string; }[];
 
         // Create unique list of languages
         const uniqueLangs = [...new Set(voices.map(v => v.lang))];
@@ -115,9 +115,9 @@ function VoiceSetting() {
 
 export function VoiceSettingSection() {
     return (
-        <Forms.FormSection>
+        <section>
             <Forms.FormTitle>Voice</Forms.FormTitle>
             <VoiceSetting />
-        </Forms.FormSection>
+        </section>
     );
 }
