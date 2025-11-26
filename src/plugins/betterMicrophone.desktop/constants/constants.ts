@@ -16,9 +16,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { types } from "@plugins/philsPluginLibrary";
 import { Devs } from "@utils/constants";
-
-import { types } from "../../philsPluginLibrary";
 
 export const PluginInfo = {
     PLUGIN_NAME: "BetterMicrophone",

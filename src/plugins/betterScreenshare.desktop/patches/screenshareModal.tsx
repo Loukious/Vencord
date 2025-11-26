@@ -17,14 +17,13 @@
 */
 
 import { Flex } from "@components/Flex";
+import { AudioSourceSelect, OpenScreenshareSettingsButton } from "@plugins/betterScreenshare.desktop/components";
+import { PluginInfo } from "@plugins/betterScreenshare.desktop/constants";
+import Plugin from "@plugins/betterScreenshare.desktop/index";
+import { screenshareStore } from "@plugins/betterScreenshare.desktop/stores";
+import { SettingsModalCard, SettingsModalCardItem } from "@plugins/philsPluginLibrary";
 import { React } from "@webpack/common";
 import { Settings } from "Vencord";
-
-import { SettingsModalCard, SettingsModalCardItem } from "../../philsPluginLibrary";
-import Plugin from "..";
-import { AudioSourceSelect, OpenScreenshareSettingsButton } from "../components";
-import { PluginInfo } from "../constants";
-import { screenshareStore } from "../stores";
 
 const ReplacedStreamSettings = () => {
     const { use } = screenshareStore;

@@ -6,12 +6,13 @@
 
 import { getUserSettingLazy } from "@api/UserSettings";
 import { ErrorCard } from "@components/ErrorCard";
+import { Flex } from "@components/Flex";
 import { Link } from "@components/Link";
 import { Devs } from "@utils/constants";
 import { Margins } from "@utils/margins";
 import { classes } from "@utils/misc";
 import definePlugin from "@utils/types";
-import { Button, Flex, Forms, React } from "@webpack/common";
+import { Button, Forms, React } from "@webpack/common";
 
 
 const ShowCurrentGame = getUserSettingLazy<boolean>("status", "showCurrentGame")!;

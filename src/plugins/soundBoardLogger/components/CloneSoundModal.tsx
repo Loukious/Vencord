@@ -6,6 +6,7 @@
 
 import { Flex } from "@components/Flex";
 import { HeadingTertiary } from "@components/Heading";
+import { cl, getEmojiUrl, SoundEvent } from "@plugins/soundBoardLogger/utils";
 import { Margins } from "@utils/margins";
 import { classes } from "@utils/misc";
 import { closeModal, ModalCloseButton, ModalContent, ModalHeader, ModalRoot, openModal } from "@utils/modal";
@@ -14,8 +15,6 @@ import { Guild } from "@vencord/discord-types";
 import { find, findByPropsLazy } from "@webpack";
 import { Button, Clickable, Forms, GuildStore, PermissionsBits, PermissionStore, Popout, SearchableSelect, showToast, Text, TextInput, Toasts, useMemo, useRef, UserStore, useState } from "@webpack/common";
 import { HtmlHTMLAttributes } from "react";
-
-import { cl, getEmojiUrl, SoundEvent } from "../utils";
 
 export function openCloneSoundModal(item) {
     const key = openModal(props =>

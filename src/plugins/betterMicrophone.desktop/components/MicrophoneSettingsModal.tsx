@@ -16,12 +16,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { Card } from "@components/Card";
 import { Flex } from "@components/Flex";
 import { Switch } from "@components/Switch";
-import { ModalSize } from "@utils/modal";
-import { SelectOption } from "@vencord/discord-types";
-import { Card, Forms, Select, Slider, TextInput, useEffect, useState } from "@webpack/common";
-
+import { MicrophoneProfile, MicrophoneStore } from "@plugins/betterMicrophone.desktop/stores";
 import {
     ProfilableStore,
     SettingsModal,
@@ -31,9 +29,11 @@ import {
     SettingsModalProfilesCard,
     validateNumberInput,
     validateTextInputNumber
-} from "../../philsPluginLibrary";
-import { Styles } from "../../philsPluginLibrary/styles";
-import { MicrophoneProfile, MicrophoneStore } from "../stores";
+} from "@plugins/philsPluginLibrary";
+import { Styles } from "@plugins/philsPluginLibrary/styles";
+import { ModalSize } from "@utils/modal";
+import { SelectOption } from "@vencord/discord-types";
+import { Forms, Select, Slider, TextInput, useEffect, useState } from "@webpack/common";
 
 const simpleVoiceBitrates: readonly SelectOption[] = [
     {

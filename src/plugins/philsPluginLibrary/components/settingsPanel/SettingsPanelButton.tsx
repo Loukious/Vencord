@@ -16,11 +16,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { panelClasses } from "@plugins/philsPluginLibrary";
 import { classes } from "@utils/misc";
 import { Button } from "@webpack/common";
 import React, { JSX } from "react";
-
-import { panelClasses } from "../../../philsPluginLibrary";
 
 export type IconComponent = <T extends { className: string; }>(props: T) => JSX.Element;
 export interface SettingsPanelButtonProps extends Partial<React.ComponentProps<typeof Button>> {

@@ -17,12 +17,11 @@
 */
 
 import { Flex } from "@components/Flex";
+import { ContributorAuthorSummary } from "@plugins/philsPluginLibrary/components/ContributorAuthorSummary";
+import { Author, Contributor } from "@plugins/philsPluginLibrary/types";
 import { ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalRoot } from "@utils/modal";
 import { Button, Text } from "@webpack/common";
 import React, { JSX } from "react";
-
-import { Author, Contributor } from "../../types";
-import { ContributorAuthorSummary } from "../ContributorAuthorSummary";
 
 
 export interface SettingsModalProps extends React.ComponentProps<typeof ModalRoot> {
