@@ -13,7 +13,7 @@ import { findComponentByCodeLazy } from "@webpack";
 
 export let fakeD = false;
 
-const Button = findComponentByCodeLazy(".NONE,disabled:", ".PANEL_BUTTON");
+const Button = findComponentByCodeLazy(".greenTooltip,", ".greenTooltipContent");
 
 function mute() {
     (document.querySelector('[aria-label="Mute"]') as HTMLElement).click();

@@ -27,7 +27,7 @@ import { Devs } from "@utils/constants";
 import definePlugin, { OptionType } from "@utils/types";
 import { findComponentByCodeLazy } from "@webpack";
 
-const Button = findComponentByCodeLazy(".NONE,disabled:", ".PANEL_BUTTON");
+const Button = findComponentByCodeLazy(".greenTooltip,", ".greenTooltipContent");
 
 function screenshareSettingsButton() {
 
