@@ -6,6 +6,7 @@
 
 import { definePluginSettings } from "@api/Settings";
 import ErrorBoundary from "@components/ErrorBoundary";
+import { addSettingsPanelButton, removeSettingsPanelButton } from "@plugins/philsPluginLibrary";
 import { Devs } from "@utils/constants";
 import definePlugin, { OptionType } from "@utils/types";
 import { findComponentByCodeLazy } from "@webpack";
@@ -73,8 +74,40 @@ function makeDeafenIcon(useFakeState: boolean) {
     };
 }
 
+function updateSettingsPanelButton() {
+    const loc = settings.store.buttonLocation;
+    if (loc === "settingsPanel" || loc === "both") {
+        removeSettingsPanelButton("faked");
+        addSettingsPanelButton({
+            name: "faked",
+            icon: makeDeafenIcon(fakeD),
+            tooltipText: "Fake Deafen",
+            onClick: toggleFakeDeafen
+        });
+    }
+}
+
+function performFakeDeafen() {
+    fakeD = !fakeD;
+    console.log("[FakeDeafen] Toggle state:", fakeD ? "ON" : "OFF");
+
+    deafen();
+    setTimeout(deafen, 250);
+
+    if (settings.store.muteUponFakeDeafen) {
+        setTimeout(mute, 300);
+    }
+
+    updateSettingsPanelButton();
+}
+
+function toggleFakeDeafen() {
+    performFakeDeafen();
+}
 
 function fakeDeafenToggleButton() {
+    const loc = settings.store.buttonLocation;
+    if (loc !== "voicePanel" && loc !== "both") return null;
 
     return (
         <Button
@@ -82,20 +115,106 @@ function fakeDeafenToggleButton() {
             icon={makeDeafenIcon(fakeD)}
             role="switch"
             aria-checked={!fakeD}
-            onClick={() => {
-                fakeD = !fakeD;
-                deafen();
-                setTimeout(deafen, 250);
-
-                if (settings.store.muteUponFakeDeafen)
-                    setTimeout(mute, 300);
-            }
-            }
+            onClick={performFakeDeafen}
         />
     );
 }
 
+let keydownListener: ((e: KeyboardEvent) => void) | null = null;
+
+function parseKeybind(keybind: string): { ctrl: boolean; shift: boolean; alt: boolean; key: string; } {
+    const parts = keybind.toLowerCase().split("+");
+    return {
+        ctrl: parts.includes("ctrl") || parts.includes("control"),
+        shift: parts.includes("shift"),
+        alt: parts.includes("alt"),
+        key: parts[parts.length - 1]
+    };
+}
+
+function setupKeybindListener() {
+    if (keydownListener) {
+        document.removeEventListener("keydown", keydownListener);
+    }
+
+    keydownListener = (e: KeyboardEvent) => {
+        if (!settings.store.enableHotkey) return;
+
+        const keybindValue = settings.store.useCustomKeybind && settings.store.customKeybind
+            ? settings.store.customKeybind
+            : settings.store.keybind || "f9";
+
+        const keybind = parseKeybind(keybindValue);
+
+        const ctrlMatch = keybind.ctrl === (e.ctrlKey || e.metaKey);
+        const shiftMatch = keybind.shift === e.shiftKey;
+        const altMatch = keybind.alt === e.altKey;
+        const keyMatch = e.key.toLowerCase() === keybind.key.toLowerCase();
+
+        if (ctrlMatch && shiftMatch && altMatch && keyMatch) {
+            e.preventDefault();
+            toggleFakeDeafen();
+        }
+    };
+
+    document.addEventListener("keydown", keydownListener);
+}
+
 const settings = definePluginSettings({
+    buttonLocation: {
+        type: OptionType.SELECT,
+        description: "Where to show the Fake Deafen button",
+        options: [
+            { label: "Above your avatar", value: "settingsPanel", default: true },
+            { label: "Beside your avatar", value: "voicePanel", default: false },
+            { label: "Both", value: "both", default: false },
+            { label: "None", value: "none", default: false }
+        ],
+        onChange: (value: string) => {
+            if (value === "settingsPanel" || value === "both") {
+                addSettingsPanelButton({
+                    name: "faked",
+                    icon: makeDeafenIcon(fakeD),
+                    tooltipText: "Fake Deafen",
+                    onClick: toggleFakeDeafen
+                });
+            } else {
+                removeSettingsPanelButton("faked");
+            }
+        }
+    },
+    enableHotkey: {
+        type: OptionType.BOOLEAN,
+        description: "Enable keyboard shortcut",
+        default: false
+    },
+    keybind: {
+        type: OptionType.SELECT,
+        description: "",
+        options: [
+            { label: "F1", value: "f1", default: false },
+            { label: "F2", value: "f2", default: false },
+            { label: "F3", value: "f3", default: false },
+            { label: "F4", value: "f4", default: false },
+            { label: "F5", value: "f5", default: false },
+            { label: "F6", value: "f6", default: false },
+            { label: "F7", value: "f7", default: false },
+            { label: "F8", value: "f8", default: false },
+            { label: "F9", value: "f9", default: true },
+            { label: "F10", value: "f10", default: false },
+            { label: "F11", value: "f11", default: false },
+            { label: "F12", value: "f12", default: false },
+            { label: "Ctrl+D", value: "ctrl+d", default: false },
+            { label: "Ctrl+Shift+D", value: "ctrl+shift+d", default: false },
+            { label: "Alt+D", value: "alt+d", default: false },
+            { label: "Alt+F", value: "alt+f", default: false },
+            { label: "Ctrl+Alt+D", value: "ctrl+alt+d", default: false },
+            { label: "Shift+F9", value: "shift+f9", default: false },
+            { label: "Shift+F10", value: "shift+f10", default: false },
+            { label: "Shift+F11", value: "shift+f11", default: false },
+            { label: "Shift+F12", value: "shift+f12", default: false }
+        ]
+    },
     muteUponFakeDeafen: {
         type: OptionType.BOOLEAN,
         description: "",
@@ -115,6 +234,23 @@ const settings = definePluginSettings({
         type: OptionType.BOOLEAN,
         description: "",
         default: false
+    },
+    useCustomKeybind: {
+        type: OptionType.BOOLEAN,
+        description: "",
+        default: false,
+        onChange: () => {
+            setupKeybindListener();
+        }
+    },
+    customKeybind: {
+        type: OptionType.STRING,
+        description: "",
+        default: "",
+        disabled: () => !settings.store.useCustomKeybind,
+        onChange: () => {
+            setupKeybindListener();
+        }
     }
 });
 
@@ -153,5 +289,26 @@ export default definePlugin({
             }
     },
     fakeDeafenToggleButton: ErrorBoundary.wrap(fakeDeafenToggleButton, { noop: true }),
+
+    start() {
+        setupKeybindListener();
+        const loc = settings.store.buttonLocation;
+        if (loc === "settingsPanel" || loc === "both") {
+            addSettingsPanelButton({
+                name: "faked",
+                icon: makeDeafenIcon(fakeD),
+                tooltipText: "Fake Deafen",
+                onClick: toggleFakeDeafen
+            });
+        }
+    },
+
+    stop() {
+        if (keydownListener) {
+            document.removeEventListener("keydown", keydownListener);
+            keydownListener = null;
+        }
+        removeSettingsPanelButton("faked");
+    },
 
 });

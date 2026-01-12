@@ -22,7 +22,7 @@ import { openScreenshareModal } from "@plugins/betterScreenshare.desktop/modals"
 import { ScreenshareAudioPatcher, ScreensharePatcher } from "@plugins/betterScreenshare.desktop/patchers";
 import { GoLivePanelWrapper, replacedSubmitFunction } from "@plugins/betterScreenshare.desktop/patches";
 import { initScreenshareAudioStore, initScreenshareStore } from "@plugins/betterScreenshare.desktop/stores";
-import { Emitter, ScreenshareSettingsIcon } from "@plugins/philsPluginLibrary";
+import { addSettingsPanelButton, Emitter, removeSettingsPanelButton, ScreenshareSettingsIcon } from "@plugins/philsPluginLibrary";
 import { Devs } from "@utils/constants";
 import definePlugin, { OptionType } from "@utils/types";
 import { findComponentByCodeLazy } from "@webpack";
@@ -30,16 +30,43 @@ import { findComponentByCodeLazy } from "@webpack";
 const Button = findComponentByCodeLazy(".greenTooltip,", ".greenTooltipContent");
 
 function screenshareSettingsButton() {
+    const { buttonLocation } = settings.use(["buttonLocation"]);
+    if (buttonLocation !== "voicePanel" && buttonLocation !== "both") return null;
 
     return (
         <Button
-            tooltipText="Change screenshare settings"
+            tooltipText="Screenshare Settings"
             icon={ScreenshareSettingsIcon}
             role="button"
             onClick={openScreenshareModal}
         />
     );
 }
+
+const settings = definePluginSettings({
+    buttonLocation: {
+        type: OptionType.SELECT,
+        description: "Where to show the Screenshare Settings button",
+        options: [
+            { label: "Above your avatar", value: "settingsPanel", default: true },
+            { label: "Beside your avatar", value: "voicePanel", default: false },
+            { label: "Both", value: "both", default: false },
+            { label: "None", value: "none", default: false }
+        ],
+        onChange: (value: string) => {
+            if (value === "settingsPanel" || value === "both") {
+                addSettingsPanelButton({
+                    name: PluginInfo.PLUGIN_NAME,
+                    icon: ScreenshareSettingsIcon,
+                    tooltipText: "Screenshare Settings",
+                    onClick: openScreenshareModal
+                });
+            } else {
+                removeSettingsPanelButton(PluginInfo.PLUGIN_NAME);
+            }
+        }
+    }
+});
 
 export default definePlugin({
     name: "BetterScreenshare",
@@ -48,20 +75,6 @@ export default definePlugin({
     dependencies: ["PhilsPluginLibrary"],
     patches: [
         {
-            find: "GoLiveModal: user cannot be undefined", // Module: 60594; canaryRelease: 364525; L431
-            replacement: {
-                match: /onSubmit:(\w+)/,
-                replace: "onSubmit:$self.replacedSubmitFunction($1)"
-            }
-        },
-        {
-            find: "StreamSettings: user cannot be undefined", // Module: 641115; canaryRelease: 364525; L254
-            replacement: {
-                match: /\(.{0,10}(,{.{0,100}modalContent)/,
-                replace: "($self.GoLivePanelWrapper$1"
-            }
-        },
-        {
             find: "#{intl::ACCOUNT_SPEAKING_WHILE_MUTED}",
             replacement: {
                 match: /className:\i\.buttons,.{0,50}children:\[/,
@@ -69,24 +82,28 @@ export default definePlugin({
             }
         }
     ],
-    settings: definePluginSettings({
-        hideDefaultSettings: {
-            type: OptionType.BOOLEAN,
-            description: "Hide Discord screen sharing settings",
-            default: true,
-        }
-    }),
+    settings,
     start(): void {
         initScreenshareStore();
         initScreenshareAudioStore();
         this.screensharePatcher = new ScreensharePatcher().patch();
         this.screenshareAudioPatcher = new ScreenshareAudioPatcher().patch();
 
+        const loc = settings.store.buttonLocation;
+        if (loc === "settingsPanel" || loc === "both") {
+            addSettingsPanelButton({
+                name: PluginInfo.PLUGIN_NAME,
+                icon: ScreenshareSettingsIcon,
+                tooltipText: "Screenshare Settings",
+                onClick: openScreenshareModal
+            });
+        }
     },
     stop(): void {
         this.screensharePatcher?.unpatch();
         this.screenshareAudioPatcher?.unpatch();
         Emitter.removeAllListeners(PluginInfo.PLUGIN_NAME);
+        removeSettingsPanelButton(PluginInfo.PLUGIN_NAME);
     },
     toolboxActions: {
         "Open Screenshare Settings": openScreenshareModal

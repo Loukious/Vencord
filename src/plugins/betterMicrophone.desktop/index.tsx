@@ -21,19 +21,19 @@ import { PluginInfo } from "@plugins/betterMicrophone.desktop/constants";
 import { openMicrophoneSettingsModal } from "@plugins/betterMicrophone.desktop/modals";
 import { MicrophonePatcher } from "@plugins/betterMicrophone.desktop/patchers";
 import { initMicrophoneStore } from "@plugins/betterMicrophone.desktop/stores";
-import { Emitter, MicrophoneSettingsIcon } from "@plugins/philsPluginLibrary";
+import { addSettingsPanelButton, Emitter, MicrophoneSettingsIcon, removeSettingsPanelButton } from "@plugins/philsPluginLibrary";
 import { Devs } from "@utils/constants";
 import definePlugin, { OptionType } from "@utils/types";
 import { findComponentByCodeLazy } from "@webpack";
 
-const Button = findComponentByCodeLazy(".NONE,disabled:", ".PANEL_BUTTON");
+const Button = findComponentByCodeLazy(".greenTooltip,", ".greenTooltipContent");
 
 function micSettingsButton() {
-    const { hideSettingsIcon } = settings.use(["hideSettingsIcon"]);
-    if (hideSettingsIcon) return null;
+    const { buttonLocation } = settings.use(["buttonLocation"]);
+    if (buttonLocation !== "voicePanel" && buttonLocation !== "both") return null;
     return (
         <Button
-            tooltipText="Change screenshare settings"
+            tooltipText="Microphone Settings"
             icon={MicrophoneSettingsIcon}
             role="button"
             onClick={openMicrophoneSettingsModal}
@@ -42,10 +42,27 @@ function micSettingsButton() {
 }
 
 const settings = definePluginSettings({
-    hideSettingsIcon: {
-        type: OptionType.BOOLEAN,
-        description: "Hide the settings icon",
-        default: true,
+    buttonLocation: {
+        type: OptionType.SELECT,
+        description: "Where to show the Microphone Settings button",
+        options: [
+            { label: "Above your avatar", value: "settingsPanel", default: true },
+            { label: "Beside your avatar", value: "voicePanel", default: false },
+            { label: "Both", value: "both", default: false },
+            { label: "None", value: "none", default: false }
+        ],
+        onChange: (value: string) => {
+            if (value === "settingsPanel" || value === "both") {
+                addSettingsPanelButton({
+                    name: PluginInfo.PLUGIN_NAME,
+                    icon: MicrophoneSettingsIcon,
+                    tooltipText: "Microphone Settings",
+                    onClick: openMicrophoneSettingsModal
+                });
+            } else {
+                removeSettingsPanelButton(PluginInfo.PLUGIN_NAME);
+            }
+        }
     }
 });
 
@@ -68,11 +85,18 @@ export default definePlugin({
         initMicrophoneStore();
 
         this.microphonePatcher = new MicrophonePatcher().patch();
+
+        const loc = settings.store.buttonLocation;
+        if (loc === "settingsPanel" || loc === "both") {
+            addSettingsPanelButton({ name: PluginInfo.PLUGIN_NAME, icon: MicrophoneSettingsIcon, tooltipText: "Microphone Settings", onClick: openMicrophoneSettingsModal });
+        }
     },
     stop(): void {
         this.microphonePatcher?.unpatch();
 
         Emitter.removeAllListeners(PluginInfo.PLUGIN_NAME);
+
+        removeSettingsPanelButton(PluginInfo.PLUGIN_NAME);
     },
     toolboxActions: {
         "Open Microphone Settings": openMicrophoneSettingsModal
