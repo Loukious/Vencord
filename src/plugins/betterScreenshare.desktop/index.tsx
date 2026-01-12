@@ -17,6 +17,7 @@
 */
 
 import { definePluginSettings } from "@api/Settings";
+import { Button } from "@components/Button";
 import { PluginInfo } from "@plugins/betterScreenshare.desktop/constants";
 import { openScreenshareModal } from "@plugins/betterScreenshare.desktop/modals";
 import { ScreenshareAudioPatcher, ScreensharePatcher } from "@plugins/betterScreenshare.desktop/patchers";
@@ -27,14 +28,14 @@ import { Devs } from "@utils/constants";
 import definePlugin, { OptionType } from "@utils/types";
 import { findComponentByCodeLazy } from "@webpack";
 
-const Button = findComponentByCodeLazy(".greenTooltip,", ".greenTooltipContent");
+const PanelButton = findComponentByCodeLazy(".greenTooltip,", ".greenTooltipContent");
 
 function screenshareSettingsButton() {
     const { buttonLocation } = settings.use(["buttonLocation"]);
     if (buttonLocation !== "voicePanel" && buttonLocation !== "both") return null;
 
     return (
-        <Button
+        <PanelButton
             tooltipText="Screenshare Settings"
             icon={ScreenshareSettingsIcon}
             role="button"
@@ -65,6 +66,16 @@ const settings = definePluginSettings({
                 removeSettingsPanelButton(PluginInfo.PLUGIN_NAME);
             }
         }
+    },
+    openSettings: {
+        type: OptionType.COMPONENT,
+        component: () => (
+            <Button
+                onClick={() => openScreenshareModal()}
+            >
+                Open Screenshare Settings
+            </Button>
+        )
     }
 });
 

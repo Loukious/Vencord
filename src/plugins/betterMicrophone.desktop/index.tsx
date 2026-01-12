@@ -17,6 +17,7 @@
 */
 
 import { definePluginSettings } from "@api/Settings";
+import { Button } from "@components/Button";
 import { PluginInfo } from "@plugins/betterMicrophone.desktop/constants";
 import { openMicrophoneSettingsModal } from "@plugins/betterMicrophone.desktop/modals";
 import { MicrophonePatcher } from "@plugins/betterMicrophone.desktop/patchers";
@@ -26,13 +27,13 @@ import { Devs } from "@utils/constants";
 import definePlugin, { OptionType } from "@utils/types";
 import { findComponentByCodeLazy } from "@webpack";
 
-const Button = findComponentByCodeLazy(".greenTooltip,", ".greenTooltipContent");
+const PanelButton = findComponentByCodeLazy(".greenTooltip,", ".greenTooltipContent");
 
 function micSettingsButton() {
     const { buttonLocation } = settings.use(["buttonLocation"]);
     if (buttonLocation !== "voicePanel" && buttonLocation !== "both") return null;
     return (
-        <Button
+        <PanelButton
             tooltipText="Microphone Settings"
             icon={MicrophoneSettingsIcon}
             role="button"
@@ -63,6 +64,16 @@ const settings = definePluginSettings({
                 removeSettingsPanelButton(PluginInfo.PLUGIN_NAME);
             }
         }
+    },
+    openSettings: {
+        type: OptionType.COMPONENT,
+        component: () => (
+            <Button
+                onClick={() => openMicrophoneSettingsModal()}
+            >
+                Open Microphone Settings
+            </Button>
+        )
     }
 });
 
