@@ -5,17 +5,19 @@
  */
 
 import { definePluginSettings } from "@api/Settings";
-import { classNameFactory } from "@api/Styles";
 import ErrorBoundary from "@components/ErrorBoundary";
 import { Flex } from "@components/Flex";
+import { Heading } from "@components/Heading";
+import { Paragraph } from "@components/Paragraph";
 import { Devs } from "@utils/constants";
+import { classNameFactory } from "@utils/css";
 import { getIntlMessage, openUserProfile } from "@utils/discord";
 import { Margins } from "@utils/margins";
 import { classes } from "@utils/misc";
 import definePlugin, { OptionType } from "@utils/types";
 import { User } from "@vencord/discord-types";
-import { findByPropsLazy, findComponentByCodeLazy, findStoreLazy } from "@webpack";
-import { Clickable, Forms, RelationshipStore, Tooltip, UserStore, useStateFromStores } from "@webpack/common";
+import { findComponentByCodeLazy, findCssClassesLazy, findStoreLazy } from "@webpack";
+import { Clickable, RelationshipStore, Tooltip, UserStore, useStateFromStores } from "@webpack/common";
 import { JSX } from "react";
 
 interface WatchingProps {
@@ -47,7 +49,7 @@ function Watching({ userIds, guildId }: WatchingProps): JSX.Element {
         <div className={cl("content")}>
             {userIds.length ?
                 (<>
-                    <Forms.FormTitle>{getIntlMessage("SPECTATORS", { numViewers: userIds.length })}</Forms.FormTitle>
+                    <Heading>{getIntlMessage("SPECTATORS", { numViewers: userIds.length })}</Heading>
                     <Flex flexDirection="column" style={{ gap: 6 }} >
                         {users.map((user, index) => (
                             <Flex
@@ -74,13 +76,14 @@ function Watching({ userIds, guildId }: WatchingProps): JSX.Element {
 const ApplicationStreamingStore = findStoreLazy("ApplicationStreamingStore");
 
 const UserSummaryItem = findComponentByCodeLazy("defaultRenderUser", "showDefaultAvatarsForNullUsers");
-const AvatarStyles = findByPropsLazy("moreUsers", "emptyUser", "avatarContainer", "clickableAvatar");
+const AvatarStyles = findCssClassesLazy("moreUsers", "emptyUser", "avatarContainer", "clickableAvatar", "avatar");
 
 export default definePlugin({
     name: "WhosWatching",
     description: "Hover over the screenshare icon to view what users are watching your stream",
     authors: [
-        Devs.Fres
+        Devs.Fres,
+        Devs.Loukious
     ],
     settings: settings,
     patches: [
@@ -131,9 +134,9 @@ export default definePlugin({
                 <div className={classes(cl("spectators_panel"), Margins.top8)}>
                     {users.length ?
                         <>
-                            <Forms.FormTitle tag="h3" style={{ marginTop: 8, marginBottom: 0, textTransform: "uppercase" }}>
+                            <Heading tag="h3" style={{ marginTop: 8, marginBottom: 0, textTransform: "uppercase" }}>
                                 {getIntlMessage("SPECTATORS", { numViewers: userIds.length })}
-                            </Forms.FormTitle>
+                            </Heading>
                             <UserSummaryItem
                                 users={users}
                                 count={userIds.length}
@@ -156,7 +159,7 @@ export default definePlugin({
                                 )}
                             />
                         </>
-                        : <Forms.FormText>No spectators</Forms.FormText>
+                        : <Paragraph>No spectators</Paragraph>
                     }
                 </div>
             </>
