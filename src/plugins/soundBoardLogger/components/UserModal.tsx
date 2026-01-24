@@ -4,14 +4,16 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+import { BaseText } from "@components/BaseText";
 import { Flex } from "@components/Flex";
+import { Heading } from "@components/Heading";
 import { CopyIcon } from "@components/Icons";
 import { AvatarStyles, cl, downloadAudio, getEmojiUrl, playSound, SoundLogEntry, User } from "@plugins/soundBoardLogger/utils";
 import { copyWithToast, openUserProfile } from "@utils/discord";
 import { Margins } from "@utils/margins";
 import { classes } from "@utils/misc";
 import { closeModal, ModalContent, ModalRoot, openModal } from "@utils/modal";
-import { Clickable, Forms, Text, Timestamp, UserSummaryItem } from "@webpack/common";
+import { Clickable, Timestamp, UserSummaryItem } from "@webpack/common";
 import moment from "moment";
 
 import { DownloadIcon, IconWithTooltip, PlayIcon } from "./Icons";
@@ -41,7 +43,7 @@ export default function UserModal({ item, user, sounds, closeModal }: { item: So
                         alt=""
                         style={{ cursor: "pointer" }}
                     />
-                    <Forms.FormTitle tag="h2" className={cl("user-name")} style={{ textTransform: "none", cursor: "pointer" }}>{user.username}</Forms.FormTitle>
+                    <Heading tag="h2" className={cl("user-name")} style={{ textTransform: "none", cursor: "pointer" }}>{user.username}</Heading>
                 </div>
             </Clickable>
             <Flex flexDirection="row" style={{ gap: "10px" }}>
@@ -51,14 +53,14 @@ export default function UserModal({ item, user, sounds, closeModal }: { item: So
                     alt=""
                 />
                 <Flex flexDirection="column" style={{ gap: "7px", height: "68px", justifyContent: "space-between" }}>
-                    <Text variant="text-md/bold" style={{ height: "20px" }}>{item.soundId}</Text>
-                    <Text variant="text-md/normal">Played {currentUser.plays.length} {currentUser.plays.length === 1 ? "time" : "times"}.</Text>
-                    <Text variant="text-md/normal">Last played: <Timestamp timestamp={new Date(moment(currentUser.plays.at(-1)).toDate())} /></Text>
+                    <BaseText weight="bold" style={{ height: "20px" }}>{item.soundId}</BaseText>
+                    <BaseText>Played {currentUser.plays.length} {currentUser.plays.length === 1 ? "time" : "times"}.</BaseText>
+                    <BaseText>Last played: <Timestamp timestamp={new Date(moment(currentUser.plays.at(-1)).toDate())} /></BaseText>
                 </Flex>
             </Flex>
-            <Text variant="heading-lg/semibold" tag="h2" className={classes(Margins.top16, Margins.bottom8)}>
+            <Heading tag="h2" className={classes(Margins.top16, Margins.bottom8)}>
                 {soundsDoneByCurrentUser.length ? "Also played:" : " "}
-            </Text>
+            </Heading>
             <Flex style={{ justifyContent: "space-between" }}>
                 <UserSummaryItem
                     users={soundsDoneByCurrentUser}

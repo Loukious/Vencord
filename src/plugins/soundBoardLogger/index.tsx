@@ -25,7 +25,7 @@ export default definePlugin({
     settings,
     patches: [
         {
-            find: "\"invite-button\"",
+            find: "\"chat-spacer\"",
             replacement: {
                 match: /\)\),\(0,(\w{1,3})\.(\w{1,3})\)\((\w{1,3})\.(\w{1,3}),{value:(\w{1,3}),children:(\w{1,3})}\)\}\}/,
                 replace: ")),$6.unshift($self.getComp()),(0,$1.$2)($3.$4,{value:$5,children:$6})}}"

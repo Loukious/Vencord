@@ -44,7 +44,9 @@ export function IconWithTooltip({ text, icon, onClick }) {
                     onMouseLeave={onMouseLeave}
                     className={classes(ButtonWrapperClasses.button)}
                     onClick={onClick}
-                    style={{ paddingRight: "13px" }}
+                    size="iconOnly"
+                    variant="none"
+                    style={{ backgroundColor: "transparent" }}
                 >
                     {icon}
                 </Button>

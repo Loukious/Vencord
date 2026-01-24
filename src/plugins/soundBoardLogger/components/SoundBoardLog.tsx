@@ -7,6 +7,7 @@
 import { Button } from "@components/Button";
 import ErrorBoundary from "@components/ErrorBoundary";
 import { Flex } from "@components/Flex";
+import { Heading } from "@components/Heading";
 import { Paragraph } from "@components/Paragraph";
 import { clearLoggedSounds, getLoggedSounds } from "@plugins/soundBoardLogger/store";
 import { addListener, AvatarStyles, cl, downloadAudio, getEmojiUrl, getSoundboardVolume, playSound, removeListener, SoundLogEntry } from "@plugins/soundBoardLogger/utils";
@@ -15,7 +16,7 @@ import { Margins } from "@utils/margins";
 import { classes } from "@utils/misc";
 import { closeModal, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalRoot, ModalSize, openModal } from "@utils/modal";
 import { User } from "@vencord/discord-types";
-import { Clickable, ContextMenuApi, FluxDispatcher, Menu, Text, Tooltip, useEffect, UserSummaryItem, UserUtils, useState } from "@webpack/common";
+import { Clickable, ContextMenuApi, FluxDispatcher, Menu, Tooltip, useEffect, UserSummaryItem, UserUtils, useState } from "@webpack/common";
 
 import { openCloneSoundModal } from "./CloneSoundModal";
 import { openMoreUsersModal } from "./MoreUsersModal";
@@ -117,7 +118,7 @@ export default function SoundBoardLog({ data, closeModal }) {
     return (
         <>
             <ModalHeader className={cl("modal-header")}>
-                <Text variant="heading-lg/semibold" style={{ flexGrow: 1 }}>SoundBoard log</Text>
+                <Heading tag="h2" style={{ flexGrow: 1 }}>SoundBoard log</Heading>
                 <ModalCloseButton onClick={closeModal} />
             </ModalHeader>
             <ModalContent className={classes(cl("modal-content"), Margins.top8)}>
