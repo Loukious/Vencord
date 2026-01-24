@@ -7,17 +7,20 @@
 import { ApplicationCommandInputType, ApplicationCommandOptionType, sendBotMessage } from "@api/Commands";
 import { NavContextMenuPatchCallback } from "@api/ContextMenu";
 import { definePluginSettings } from "@api/Settings";
+import { Button } from "@components/Button";
 import { Divider } from "@components/Divider";
 import { Flex } from "@components/Flex";
 import { FormSwitch } from "@components/FormSwitch";
+import { Heading } from "@components/Heading";
 import { OpenExternalIcon } from "@components/Icons";
+import { Paragraph } from "@components/Paragraph";
 import { Devs } from "@utils/constants";
 import { insertTextIntoChatInputBox, sendMessage } from "@utils/discord";
 import { Margins } from "@utils/margins";
 import definePlugin, { OptionType, PluginNative } from "@utils/types";
 import { CommandArgument, CommandContext } from "@vencord/discord-types";
 import { findByPropsLazy } from "@webpack";
-import { Button, DraftType, Forms, Menu, PermissionsBits, PermissionStore, React, Select, SelectedChannelStore, showToast, TextInput, Toasts, UploadManager, useEffect, useState } from "@webpack/common";
+import { DraftType, Menu, PermissionsBits, PermissionStore, React, Select, SelectedChannelStore, showToast, TextInput, Toasts, UploadManager, useEffect, useState } from "@webpack/common";
 
 const Native = VencordNative.pluginHelpers.BiggerFileUpload as PluginNative<typeof import("./native")>;
 
@@ -245,9 +248,9 @@ function SettingsComponent(props: { setValue(v: any): void; }) {
             {/* File Uploader Selection */}
             <section />
             <section title="Upload Limit Bypass">
-                <Forms.FormText>
+                <Paragraph>
                     Select the external file uploader service to be used to bypass the upload limit.
-                </Forms.FormText>
+                </Paragraph>
                 <Select
                     options={[
                         { label: "Custom Uploader", value: "Custom" },
@@ -279,9 +282,9 @@ function SettingsComponent(props: { setValue(v: any): void; }) {
             {fileUploader === "GoFile" && (
                 <>
                     <section title="GoFile Token (optional)">
-                        <Forms.FormText>
+                        <Paragraph>
                             Insert your personal GoFile account's token to save all uploads to your GoFile account.
-                        </Forms.FormText>
+                        </Paragraph>
                         <TextInput
                             type="text"
                             value={settings.store.gofileToken || ""}
@@ -297,9 +300,9 @@ function SettingsComponent(props: { setValue(v: any): void; }) {
             {fileUploader === "Catbox" && (
                 <>
                     <section title="Catbox User hash (optional)">
-                        <Forms.FormText>
+                        <Paragraph>
                             Insert your personal Catbox account's hash to save all uploads to your Catbox account.
-                        </Forms.FormText>
+                        </Paragraph>
                         <TextInput
                             type="text"
                             value={settings.store.catboxUserHash || ""}
@@ -315,9 +318,9 @@ function SettingsComponent(props: { setValue(v: any): void; }) {
             {fileUploader === "Litterbox" && (
                 <>
                     <section title="File Expiration Time">
-                        <Forms.FormText>
+                        <Paragraph>
                             Select how long it should take for your uploads to expire and get deleted.
-                        </Forms.FormText>
+                        </Paragraph>
                         <Select
                             options={[
                                 { label: "1 hour", value: "1h" },
@@ -339,9 +342,9 @@ function SettingsComponent(props: { setValue(v: any): void; }) {
             {fileUploader === "VikingFile" && (
                 <>
                     <section title="VikingFile User hash (optional)">
-                        <Forms.FormText>
+                        <Paragraph>
                             Insert your personal VikingFile account's hash to save all uploads to your VikingFile account.
-                        </Forms.FormText>
+                        </Paragraph>
                         <TextInput
                             type="text"
                             value={settings.store.vikingfileUserHash || ""}
@@ -421,7 +424,8 @@ function SettingsComponent(props: { setValue(v: any): void; }) {
                     </section>
 
                     <Divider />
-                    <Forms.FormTitle>Custom Uploader Arguments</Forms.FormTitle>
+                    <Divider />
+                    <Heading>Custom Uploader Arguments</Heading>
                     {Object.entries(customUploaderStore.get().args).map(([key, value], index) => (
                         <div key={index}>
                             <TextInput
@@ -442,7 +446,7 @@ function SettingsComponent(props: { setValue(v: any): void; }) {
                     ))}
 
                     <Divider />
-                    <Forms.FormTitle>Headers</Forms.FormTitle>
+                    <Heading>Headers</Heading>
                     {Object.entries(customUploaderStore.get().headers).map(([key, value], index) => (
                         <div key={index}>
                             <TextInput
@@ -463,11 +467,11 @@ function SettingsComponent(props: { setValue(v: any): void; }) {
                     ))}
 
                     <Divider />
-                    <Forms.FormTitle>Import ShareX Config</Forms.FormTitle>
+                    <Heading>Import ShareX Config</Heading>
                     <Button
                         onClick={triggerFileUpload}
-                        color={Button.Colors.BRAND}
-                        size={Button.Sizes.XLARGE}
+                        variant="primary"
+                        size="medium"
                         className={Margins.bottom16}
                     >
                         Import
