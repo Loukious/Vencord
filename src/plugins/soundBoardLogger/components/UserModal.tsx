@@ -6,12 +6,12 @@
 
 import { Flex } from "@components/Flex";
 import { CopyIcon } from "@components/Icons";
-import { AvatarStyles, cl, downloadAudio, getEmojiUrl, playSound, SoundLogEntry, User, UserSummaryItem } from "@plugins/soundBoardLogger/utils";
+import { AvatarStyles, cl, downloadAudio, getEmojiUrl, playSound, SoundLogEntry, User } from "@plugins/soundBoardLogger/utils";
 import { copyWithToast, openUserProfile } from "@utils/discord";
 import { Margins } from "@utils/margins";
 import { classes } from "@utils/misc";
 import { closeModal, ModalContent, ModalRoot, openModal } from "@utils/modal";
-import { Clickable, Forms, Text, Timestamp } from "@webpack/common";
+import { Clickable, Forms, Text, Timestamp, UserSummaryItem } from "@webpack/common";
 import moment from "moment";
 
 import { DownloadIcon, IconWithTooltip, PlayIcon } from "./Icons";

@@ -6,10 +6,9 @@
 
 import { classNameFactory } from "@api/Styles";
 import { proxyLazy } from "@utils/lazy";
-import { LazyComponent } from "@utils/react";
 import { saveFile } from "@utils/web";
 import type { User } from "@vencord/discord-types";
-import { findByCode, findByCodeLazy, findByProps, findByPropsLazy } from "@webpack";
+import { findByCodeLazy, findByProps, findCssClassesLazy } from "@webpack";
 
 import settings from "./settings";
 
@@ -76,6 +75,4 @@ export function removeListener(fn): void {
     listeners = listeners.filter(f => f !== fn);
 }
 
-// Taken from https://github.com/Vendicated/Vencord/blob/86e94343cca10b950f2dc8d18d496d6db9f3b728/src/components/PluginSettings/PluginModal.tsx#L45
-export const UserSummaryItem = LazyComponent(() => findByCode("defaultRenderUser", "showDefaultAvatarsForNullUsers"));
-export const AvatarStyles = findByPropsLazy("moreUsers", "emptyUser", "avatarContainer", "clickableAvatar");
+export const AvatarStyles = findCssClassesLazy("moreUsers", "emptyUser", "avatarContainer", "clickableAvatar", "avatar");

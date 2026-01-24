@@ -4,17 +4,18 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+import { Button } from "@components/Button";
 import ErrorBoundary from "@components/ErrorBoundary";
 import { Flex } from "@components/Flex";
 import { Paragraph } from "@components/Paragraph";
 import { clearLoggedSounds, getLoggedSounds } from "@plugins/soundBoardLogger/store";
-import { addListener, AvatarStyles, cl, downloadAudio, getEmojiUrl, getSoundboardVolume, playSound, removeListener, SoundLogEntry, UserSummaryItem } from "@plugins/soundBoardLogger/utils";
+import { addListener, AvatarStyles, cl, downloadAudio, getEmojiUrl, getSoundboardVolume, playSound, removeListener, SoundLogEntry } from "@plugins/soundBoardLogger/utils";
 import { copyWithToast } from "@utils/discord";
 import { Margins } from "@utils/margins";
 import { classes } from "@utils/misc";
 import { closeModal, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalRoot, ModalSize, openModal } from "@utils/modal";
 import { User } from "@vencord/discord-types";
-import { Button, Clickable, ContextMenuApi, FluxDispatcher, Menu, Text, Tooltip, useEffect, UserUtils, useState } from "@webpack/common";
+import { Clickable, ContextMenuApi, FluxDispatcher, Menu, Text, Tooltip, useEffect, UserSummaryItem, UserUtils, useState } from "@webpack/common";
 
 import { openCloneSoundModal } from "./CloneSoundModal";
 import { openMoreUsersModal } from "./MoreUsersModal";
@@ -166,11 +167,11 @@ export default function SoundBoardLog({ data, closeModal }) {
                                 )}
                             />
                             <Flex flexDirection="row" className={cl("sound-buttons")}>
-                                <Button color={Button.Colors.PRIMARY} size={Button.Sizes.SMALL} onClick={() => downloadAudio(item.soundId)}>Download</Button>
-                                <Button color={Button.Colors.GREEN} size={Button.Sizes.SMALL} onClick={() => copyWithToast(item.soundId, "ID copied to clipboard!")}>Copy ID</Button>
+                                <Button variant="primary" size="small" onClick={() => downloadAudio(item.soundId)}>Download</Button>
+                                <Button variant="positive" size="small" onClick={() => copyWithToast(item.soundId, "ID copied to clipboard!")}>Copy ID</Button>
                                 <Tooltip text={`Soundboard volume: ${Math.floor(getSoundboardVolume())}%`}>
                                     {({ onMouseEnter, onMouseLeave }) =>
-                                        <Button color={Button.Colors.BRAND} size={Button.Sizes.SMALL} onClick={() => playSound(item.soundId)} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>Play Sound</Button>
+                                        <Button variant="primary" size="small" onClick={() => playSound(item.soundId)} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>Play Sound</Button>
                                     }
                                 </Tooltip>
                             </Flex>
@@ -187,7 +188,7 @@ export default function SoundBoardLog({ data, closeModal }) {
                 }
             </ModalContent >
             <ModalFooter className={cl("modal-footer")}>
-                <Button color={Button.Colors.RED} onClick={async () => { await clearLoggedSounds(); update(); }}>
+                <Button variant="dangerPrimary" onClick={async () => { await clearLoggedSounds(); update(); }}>
                     Clear logs
                 </Button>
             </ModalFooter>

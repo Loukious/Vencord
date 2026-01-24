@@ -4,8 +4,11 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+import { BaseText } from "@components/BaseText";
+import { Button } from "@components/Button";
 import { Flex } from "@components/Flex";
-import { HeadingTertiary } from "@components/Heading";
+import { Heading, HeadingTertiary } from "@components/Heading";
+import { Paragraph } from "@components/Paragraph";
 import { cl, getEmojiUrl, SoundEvent } from "@plugins/soundBoardLogger/utils";
 import { Margins } from "@utils/margins";
 import { classes } from "@utils/misc";
@@ -13,7 +16,7 @@ import { closeModal, ModalCloseButton, ModalContent, ModalHeader, ModalRoot, ope
 import { LazyComponent } from "@utils/react";
 import { Guild } from "@vencord/discord-types";
 import { find, findByPropsLazy } from "@webpack";
-import { Button, Clickable, Forms, GuildStore, PermissionsBits, PermissionStore, Popout, SearchableSelect, showToast, Text, TextInput, Toasts, useMemo, useRef, UserStore, useState } from "@webpack/common";
+import { Clickable, GuildStore, PermissionsBits, PermissionStore, Popout, SearchableSelect, showToast, TextInput, Toasts, useMemo, useRef, UserStore, useState } from "@webpack/common";
 import { HtmlHTMLAttributes } from "react";
 
 export function openCloneSoundModal(item) {
@@ -33,7 +36,7 @@ const getFontSize = (s: string, small: boolean = false) => {
 function GuildAcronym({ acronym, small, style = {} }) {
     return (
         <Flex style={{ alignItems: "center", justifyContent: "center", overflow: "hidden", fontSize: getFontSize(acronym, small), ...style }}>
-            <Text>{acronym}</Text>
+            <BaseText>{acronym}</BaseText>
         </Flex>
     );
 }
@@ -79,7 +82,7 @@ export function CloneSoundModal({ item, closeModal }: { item: SoundEvent, closeM
     return <>
         <ModalHeader>
             <Flex style={{ width: "100%", justifyContent: "center" }}>
-                <Text variant="heading-lg/semibold" style={{ flexGrow: 1 }}>Clone Sound</Text>
+                <Heading tag="h2" style={{ flexGrow: 1 }}>Clone Sound</Heading>
                 <ModalCloseButton onClick={closeModal} />
             </Flex>
         </ModalHeader>
@@ -87,7 +90,7 @@ export function CloneSoundModal({ item, closeModal }: { item: SoundEvent, closeM
             <HeadingTertiary className={Margins.top16}>Cloning Sound</HeadingTertiary>
             <CustomInput style={{ display: "flex", flexDirection: "row", gap: "10px", alignItems: "center" }} className={Margins.bottom16}>
                 <img src={getEmojiUrl(item.emoji)} width="24" height="24" />
-                <Text>{item.soundId}</Text>
+                <BaseText>{item.soundId}</BaseText>
             </CustomInput>
             <HeadingTertiary aria-required="true">Add to server:</HeadingTertiary>
             <SearchableSelect
@@ -136,11 +139,11 @@ export function CloneSoundModal({ item, closeModal }: { item: SoundEvent, closeM
                                         {soundEmoji ?
                                             <>
                                                 <img src={getEmojiUrl({ name: soundEmoji.surrogates, id: soundEmoji.id })} width="24" height="24" style={{ cursor: "pointer" }} />
-                                                <Text style={{ color: "var(--text-muted)", cursor: "pointer" }}>:{soundEmoji.name ? soundEmoji.name.split("~")[0] : soundEmoji.uniqueName}:</Text>
+                                                <BaseText style={{ color: "var(--text-muted)", cursor: "pointer" }}>:{soundEmoji.name ? soundEmoji.name.split("~")[0] : soundEmoji.uniqueName}:</BaseText>
                                             </> :
                                             <>
                                                 <img src={getEmojiUrl({ name: "😊" })} width="24" height="24" style={{ filter: "grayscale(100%)", cursor: "pointer" }} />
-                                                <Text style={{ color: "var(--text-muted)", cursor: "pointer" }}>Click to Select</Text>
+                                                <BaseText style={{ color: "var(--text-muted)", cursor: "pointer" }}>Click to Select</BaseText>
                                             </>
                                         }
                                     </CustomInput>
@@ -150,7 +153,7 @@ export function CloneSoundModal({ item, closeModal }: { item: SoundEvent, closeM
                     </Popout>
                 </div>
             </Flex>
-            {!isEmojiValid && <Forms.FormText style={{ color: "var(--text-danger)" }} className={Margins.bottom16}>You can't use that emoji in that server</Forms.FormText>}
+            {!isEmojiValid && <Paragraph style={{ color: "var(--text-danger)" }} className={Margins.bottom16}>You can't use that emoji in that server</Paragraph>}
             <Button onClick={() => {
                 setLoadingButton(true);
                 fetch(`https://cdn.discordapp.com/soundboard-sounds/${item.soundId}`).then(function (response) {
@@ -190,7 +193,7 @@ export function CloneSoundModal({ item, closeModal }: { item: SoundEvent, closeM
                 });
             }}
                 disabled={(!(selectedGuild && soundName && isEmojiValid)) || loadingButton}
-                size={Button.Sizes.MEDIUM}
+                size="medium"
                 style={{ width: "100%" }}
                 className={Margins.bottom16}>Add to Server</Button>
         </ModalContent>

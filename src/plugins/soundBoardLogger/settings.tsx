@@ -5,8 +5,9 @@
  */
 
 import { definePluginSettings } from "@api/Settings";
+import { Button } from "@components/Button";
 import { OptionType } from "@utils/types";
-import { Button, Forms, TextInput, useState } from "@webpack/common";
+import { Forms, TextInput, useState } from "@webpack/common";
 
 import { openSoundBoardLog } from "./components/SoundBoardLog";
 
@@ -78,7 +79,7 @@ const settings = definePluginSettings({
         type: OptionType.COMPONENT,
         description: "show the logs",
         component: () =>
-            <Button color={Button.Colors.LINK} size={Button.Sizes.SMALL} onClick={openSoundBoardLog}>Open Logs</Button>
+            <Button variant="link" size="small" onClick={openSoundBoardLog}>Open Logs</Button>
     }
 });
 
