@@ -5,14 +5,17 @@
  */
 
 import { getUserSettingLazy } from "@api/UserSettings";
+import { Button } from "@components/Button";
 import { ErrorCard } from "@components/ErrorCard";
 import { Flex } from "@components/Flex";
+import { Heading } from "@components/Heading";
 import { Link } from "@components/Link";
+import { Paragraph } from "@components/Paragraph";
 import { Devs } from "@utils/constants";
 import { Margins } from "@utils/margins";
 import { classes } from "@utils/misc";
 import definePlugin from "@utils/types";
-import { Button, Forms, React } from "@webpack/common";
+import { React } from "@webpack/common";
 
 
 const ShowCurrentGame = getUserSettingLazy<boolean>("status", "showCurrentGame")!;
@@ -66,11 +69,11 @@ export default definePlugin({
                         className={classes(Margins.top16, Margins.bottom16)}
                         style={{ padding: "1em" }}
                     >
-                        <Forms.FormTitle>Notice</Forms.FormTitle>
-                        <Forms.FormText>Activity Sharing isn't enabled, people won't be able to see your custom rich presence!</Forms.FormText>
+                        <Heading>Notice</Heading>
+                        <Paragraph>Activity Sharing isn't enabled, people won't be able to see your custom rich presence!</Paragraph>
 
                         <Button
-                            color={Button.Colors.TRANSPARENT}
+                            variant="secondary"
                             className={Margins.top8}
                             onClick={() => ShowCurrentGame.updateSetting(true)}
                         >
@@ -80,12 +83,12 @@ export default definePlugin({
                 )}
 
                 <Flex flexDirection="column" style={{ display: "flex", flexDirection: "column", gap: "1em", fontSize: "15px", lineHeight: "1.6" }} className={Margins.top16}>
-                    <Forms.FormText>
+                    <Paragraph>
                         For this to work you will need <Link href="https://github.com/Loukious/stremio-shell-ng">this Stremio fork</Link>
-                    </Forms.FormText>
-                    <Forms.FormText>
+                    </Paragraph>
+                    <Paragraph>
                         After installing the fork, simply enable this plugin and it will automatically replace the Stremio activity with the current movie/series name.
-                    </Forms.FormText>
+                    </Paragraph>
                 </Flex>
 
             </>
