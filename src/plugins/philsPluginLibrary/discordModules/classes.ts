@@ -17,8 +17,8 @@
 */
 
 import * as types from "@plugins/philsPluginLibrary/types";
-import { findByPropsLazy } from "@webpack";
+import { findCssClassesLazy } from "@webpack";
 
-export const panelClasses: types.PanelClasses = findByPropsLazy("button", "buttonContents", "buttonColor");
+export const panelClasses: types.PanelClasses = findCssClassesLazy("button", "buttonContents", "buttonColor", "container", "actionButtons", "buttonIcon");
 
 // waitFor(filters.byProps("button", "buttonContents", "buttonColor"), result => panelClasses = result);
