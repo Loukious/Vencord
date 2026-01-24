@@ -4,10 +4,12 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+import { Button } from "@components/Button";
 import { classes } from "@utils/misc";
-import { Button, ButtonWrapperClasses, Tooltip } from "@webpack/common";
+import { findCssClassesLazy } from "@webpack";
+import { Tooltip } from "@webpack/common";
 
-
+const ButtonWrapperClasses = findCssClassesLazy("button", "buttonWrapper", "notificationDot");
 // Thanks svgrepo.com for the play and download icons.
 // Licensed under CC Attribution License https://www.svgrepo.com/page/licensing/#CC%20Attribution
 
