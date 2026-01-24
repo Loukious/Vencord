@@ -18,6 +18,7 @@
 
 import { definePluginSettings } from "@api/Settings";
 import { Button } from "@components/Button";
+import ErrorBoundary from "@components/ErrorBoundary";
 import { PluginInfo } from "@plugins/betterMicrophone.desktop/constants";
 import { openMicrophoneSettingsModal } from "@plugins/betterMicrophone.desktop/modals";
 import { MicrophonePatcher } from "@plugins/betterMicrophone.desktop/patchers";
@@ -27,9 +28,9 @@ import { Devs } from "@utils/constants";
 import definePlugin, { OptionType } from "@utils/types";
 import { findComponentByCodeLazy } from "@webpack";
 
-const PanelButton = findComponentByCodeLazy(".greenTooltip,", ".greenTooltipContent");
+const PanelButton = findComponentByCodeLazy(".GREEN,positionKeyStemOverride:");
 
-function micSettingsButton() {
+function micSettingsButton(props: { nameplate?: any; }) {
     const { buttonLocation } = settings.use(["buttonLocation"]);
     if (buttonLocation !== "voicePanel" && buttonLocation !== "both") return null;
     return (
@@ -37,6 +38,7 @@ function micSettingsButton() {
             tooltipText="Microphone Settings"
             icon={MicrophoneSettingsIcon}
             role="button"
+            plated={props?.nameplate != null}
             onClick={openMicrophoneSettingsModal}
         />
     );
@@ -86,8 +88,8 @@ export default definePlugin({
         {
             find: "#{intl::ACCOUNT_SPEAKING_WHILE_MUTED}",
             replacement: {
-                match: /className:\i\.buttons,.{0,50}children:\[/,
-                replace: "$&$self.micSettingsButton(),"
+                match: /speaking:.{0,100}style:.,children:\[/,
+                replace: "$&$self.micSettingsButton(arguments[0]),"
             }
         }
     ],
@@ -112,5 +114,5 @@ export default definePlugin({
     toolboxActions: {
         "Open Microphone Settings": openMicrophoneSettingsModal
     },
-    micSettingsButton
+    micSettingsButton: ErrorBoundary.wrap(micSettingsButton, { noop: true }),
 });

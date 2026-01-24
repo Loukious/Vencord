@@ -14,7 +14,7 @@ import { findComponentByCodeLazy } from "@webpack";
 
 export let fakeD = false;
 
-const Button = findComponentByCodeLazy(".greenTooltip,", ".greenTooltipContent");
+const Button = findComponentByCodeLazy(".GREEN,positionKeyStemOverride:");
 
 function mute() {
     (document.querySelector('[aria-label="Mute"]') as HTMLElement).click();
@@ -105,7 +105,7 @@ function toggleFakeDeafen() {
     performFakeDeafen();
 }
 
-function fakeDeafenToggleButton() {
+function fakeDeafenToggleButton(props: { nameplate?: any; }) {
     const loc = settings.store.buttonLocation;
     if (loc !== "voicePanel" && loc !== "both") return null;
 
@@ -115,6 +115,7 @@ function fakeDeafenToggleButton() {
             icon={makeDeafenIcon(fakeD)}
             role="switch"
             aria-checked={!fakeD}
+            plated={props?.nameplate != null}
             onClick={performFakeDeafen}
         />
     );
@@ -271,8 +272,8 @@ export default definePlugin({
         {
             find: "#{intl::ACCOUNT_SPEAKING_WHILE_MUTED}",
             replacement: {
-                match: /className:\i\.buttons,.{0,50}children:\[/,
-                replace: "$&$self.fakeDeafenToggleButton(),"
+                match: /speaking:.{0,100}style:.,children:\[/,
+                replace: "$&$self.fakeDeafenToggleButton(arguments[0]),"
             }
         }
     ],

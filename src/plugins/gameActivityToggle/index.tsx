@@ -114,8 +114,8 @@ export default definePlugin({
         {
             find: "#{intl::ACCOUNT_SPEAKING_WHILE_MUTED}",
             replacement: {
-                match: /children:\[(?=.{0,25}?accountContainerRef)/,
-                replace: "children:[$self.GameActivityToggleButton(arguments[0]),"
+                match: /speaking:.{0,100}style:.,children:\[/,
+                replace: "$&$self.GameActivityToggleButton(arguments[0]),"
             }
         }
     ],

@@ -18,6 +18,7 @@
 
 import { definePluginSettings } from "@api/Settings";
 import { Button } from "@components/Button";
+import ErrorBoundary from "@components/ErrorBoundary";
 import { PluginInfo } from "@plugins/betterScreenshare.desktop/constants";
 import { openScreenshareModal } from "@plugins/betterScreenshare.desktop/modals";
 import { ScreenshareAudioPatcher, ScreensharePatcher } from "@plugins/betterScreenshare.desktop/patchers";
@@ -28,9 +29,9 @@ import { Devs } from "@utils/constants";
 import definePlugin, { OptionType } from "@utils/types";
 import { findComponentByCodeLazy } from "@webpack";
 
-const PanelButton = findComponentByCodeLazy(".greenTooltip,", ".greenTooltipContent");
+const PanelButton = findComponentByCodeLazy(".GREEN,positionKeyStemOverride:");
 
-function screenshareSettingsButton() {
+function screenshareSettingsButton(props: { nameplate?: any; }) {
     const { buttonLocation } = settings.use(["buttonLocation"]);
     if (buttonLocation !== "voicePanel" && buttonLocation !== "both") return null;
 
@@ -39,6 +40,7 @@ function screenshareSettingsButton() {
             tooltipText="Screenshare Settings"
             icon={ScreenshareSettingsIcon}
             role="button"
+            plated={props?.nameplate != null}
             onClick={openScreenshareModal}
         />
     );
@@ -88,8 +90,8 @@ export default definePlugin({
         {
             find: "#{intl::ACCOUNT_SPEAKING_WHILE_MUTED}",
             replacement: {
-                match: /className:\i\.buttons,.{0,50}children:\[/,
-                replace: "$&$self.screenshareSettingsButton(),"
+                match: /speaking:.{0,100}style:.,children:\[/,
+                replace: "$&$self.screenshareSettingsButton(arguments[0]),"
             }
         }
     ],
@@ -121,5 +123,5 @@ export default definePlugin({
     },
     replacedSubmitFunction,
     GoLivePanelWrapper,
-    screenshareSettingsButton
+    screenshareSettingsButton: ErrorBoundary.wrap(screenshareSettingsButton, { noop: true }),
 });
