@@ -108,7 +108,7 @@ export default definePlugin({
         {
             find: "id:\"share-link\"",
             replacement: {
-                match: /\(0,(\w{1,3})\.(\w{1,3})\)\((\w{1,3})\.(\w{1,3}),\{id:"share-link"[^}]+}\)/,
+                match: /\(0,(\w{1,3})\.(\w{1,3})\)\((\w{1,3})\.(\w{1,3}),\{id:"share-link"[^}]+}}\)/,
                 replace: '$&, (0,$1.$2)($3.$4, { id: "Auto-complete", label: "Auto Complete", action: () => { $self.openCompleteQuest(e.quest.id); } })'
             }
         }
