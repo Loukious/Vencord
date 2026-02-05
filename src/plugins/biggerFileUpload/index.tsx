@@ -685,8 +685,7 @@ async function uploadFileToCatbox(file: File, channelId: string, temporary: bool
             let finalUrl = uploadResult;
 
             if (videoExtensions.some(ext => finalUrl.endsWith(ext))) {
-                const uploadedFileName = finalUrl.split("/").pop();
-                finalUrl = `https://embeds.video/cat/${uploadedFileName}`;
+                finalUrl = await Native.getEmbeddrLinkNative(finalUrl);
             }
 
             setTimeout(() => sendTextToChat(finalUrl), 10);
@@ -768,7 +767,7 @@ async function uploadFileCustom(file: File, channelId: string) {
             let finalUrlModified = finalUrl;
 
             if (videoExtensions.some(ext => finalUrlModified.endsWith(ext))) {
-                finalUrlModified = `https://embeds.video/${finalUrlModified}`;
+                finalUrlModified = await Native.getEmbeddrLinkNative(finalUrlModified);
             }
 
             setTimeout(() => sendTextToChat(`${finalUrlModified} `), 10);

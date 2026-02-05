@@ -221,3 +221,25 @@ export async function uploadFileCustomNative(_, url: string, fileBuffer: ArrayBu
         throw error;
     }
 }
+
+export async function getEmbeddrLinkNative(_, link: string): Promise<string> {
+    try {
+        const response = await fetch("https://embeddr.top/link", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ url: link }),
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        return result.url;
+    } catch (error) {
+        console.error("Error getting embeddr.top link:", error);
+        throw error;
+    }
+}
