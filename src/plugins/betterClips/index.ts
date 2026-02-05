@@ -20,7 +20,7 @@ import { definePluginSettings } from "@api/Settings";
 import { Devs } from "@utils/constants";
 import { getIntlMessage } from "@utils/discord";
 import definePlugin, { OptionType } from "@utils/types";
-import { Activity, SelectOption } from "@vencord/discord-types";
+import { Activity } from "@vencord/discord-types";
 import { PresenceStore, UserStore } from "@webpack/common";
 
 
@@ -40,6 +40,12 @@ const settings = definePluginSettings({
     moreClipSettings: {
         description: "Adds more FPS and duration options in settings.",
         type: OptionType.BOOLEAN,
+        default: true,
+        restartNeeded: true
+    },
+    ignorePlatformRestriction: {
+        type: OptionType.BOOLEAN,
+        description: "Allow Platform Restricted Clipping (may cause save errors)",
         default: true,
         restartNeeded: true
     },
@@ -77,7 +83,8 @@ export default definePlugin({
     authors: [
         Devs.Loukious,
         Devs.niko,
-        Devs.Joona
+        Devs.Joona,
+        Devs.keyages
     ],
     description: "Enables extra clipping options for streams.",
     settings,
@@ -99,25 +106,25 @@ export default definePlugin({
             }
         },
         {
-            predicate: () => settings.store.moreClipSettings,
-            find: "#{intl::CLIPS_SETTINGS_ENABLE_CLIPS_HELP}),checked",
-            replacement: [
-                {
-                    match: /\[\{.{0,25}\i.\i.FPS_15.{0,500}\}\]/,
-                    replace: "$self.patchFramerates($&)"
-                },
-                {
-                    match: /\[\{.{0,25}\i.\i.SECONDS_30.{0,500}\}\]/,
-                    replace: "$self.patchTimeslots($&)"
-                },
-            ]
+            find: ".CLIPS_FRAME_RATE,{",
+            replacement: {
+                match: /\[\{.{0,25}\i.\i.FPS_15.{0,500}\}\]/,
+                replace: "$self.patchFramerates($&)"
+            }
+        },
+        {
+            find: ".CLIPS_LENGTH,{",
+            replacement: {
+                match: /\[\{.{0,25}\i.\i.SECONDS_30.{0,500}\}\]/,
+                replace: "$self.patchTimeslots($&)"
+            }
         },
         // enables clips
         {
             find: "2022-11_clips_experiment",
             replacement: {
                 match: /defaultConfig:\{enableClips:!\d,ignorePlatformRestriction:!\d,showClipsHeaderEntrypoint:!\d,enableScreenshotKeybind:!\d,enableVoiceOnlyClips:!\d,enableAdvancedSignals:!\d\}/,
-                replace: "defaultConfig:{enableClips:!0,ignorePlatformRestriction:!0,showClipsHeaderEntrypoint:!0,enableScreenshotKeybind:$self.settings.store.enableScreenshotKeybind,enableVoiceOnlyClips:$self.settings.store.enableVoiceOnlyClips,enableAdvancedSignals:$self.settings.store.enableAdvancedSignals}"
+                replace: "defaultConfig:{enableClips:!0,ignorePlatformRestriction:$self.settings.store.ignorePlatformRestriction,showClipsHeaderEntrypoint:!0,enableScreenshotKeybind:$self.settings.store.enableScreenshotKeybind,enableVoiceOnlyClips:$self.settings.store.enableVoiceOnlyClips,enableAdvancedSignals:$self.settings.store.enableAdvancedSignals}"
             }
         },
         {
@@ -135,35 +142,35 @@ export default definePlugin({
             }
         }
     ],
-    patchTimeslots(timeslots: SelectOption[]) {
+    patchTimeslots(timeslots: { id: string; value: number; label: string; }[]) {
         const newTimeslots = [...timeslots];
         const extraTimeslots = [3, 4, 5, 6, 7, 10, 15, 20, 25, 30];
 
         extraTimeslots.forEach(timeslot => newTimeslots.push({
-            key: `${timeslot}min`,
+            id: `${timeslot}min`,
             value: timeslot * 60000,
             label: getIntlMessage("CLIPS_LENGTH_MINUTES", {
                 count: timeslot
             })
         }));
 
-        return newTimeslots;
+        return newTimeslots.sort((a, b) => a.value - b.value);
     },
 
-    patchFramerates(framerates: SelectOption[]) {
+    patchFramerates(framerates: { id: string; value: number; label: string; }[]) {
         const newFramerates = [...framerates];
         const extraFramerates = [45, 90, 120, 144, 165, 240];
 
         // Lower framerates than 15FPS have adverse affects on compression, 3 minute clips at 10FPS skyrocket the filesize to 200mb!!
         extraFramerates.forEach(framerate => newFramerates.push({
-            key: `${framerate}fps`,
+            id: `${framerate}fps`,
             value: framerate,
             label: getIntlMessage("SCREENSHARE_FPS_ABBREVIATED", {
-                count: framerate
+                fps: framerate
             })
         }));
 
-        return newFramerates.toSorted();
+        return newFramerates.sort((a, b) => a.value - b.value);
     },
     getApplicationId(activityName: string) {
         if (settings.store.richPresenceTagging === "never") return null;
