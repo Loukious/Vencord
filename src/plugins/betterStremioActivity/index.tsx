@@ -26,37 +26,27 @@ export default definePlugin({
     description: "Replaces Stremio's RPC activity with the current movie/series name instead of 'Watching Stremio'.",
     authors: [Devs.Loukious],
 
+    flux: {
+        LOCAL_ACTIVITY_UPDATE(data: { activity: any; socketId: string; }) {
+            const activity = data?.activity;
+            if (!activity || activity.name !== "Stremio") return;
 
-    patches: [
-        {
-            find: ',"LocalActivityStore");',
-            replacement: {
-                match: /LOCAL_ACTIVITY_UPDATE:(\i)/,
-                replace: "LOCAL_ACTIVITY_UPDATE:$self.interceptActivity($1)",
-            }
-        }
-    ],
+            if (
+                activity.timestamps?.end ||
+                activity.state?.toLowerCase().includes("paused") ||
+                activity.assets?.small_text?.toLowerCase().includes("paused")
+            ) {
+                activity.name = activity.details;
 
+                if (activity.state) {
+                    activity.details = activity.state;
+                }
 
-    interceptActivity(originalHandler: Function) {
-        return (activityData: { activity: any, socketId: string; }) => {
-            if (activityData?.activity) {
-                if (activityData.activity.name === "Stremio") {
-                    if (activityData.activity.timestamps?.end || activityData.activity.state?.toLowerCase().includes("paused") || activityData.activity.assets?.small_text?.toLowerCase().includes("paused")) {
-                        activityData.activity.name = activityData.activity.details;
-
-                        if (activityData.activity.state) {
-                            activityData.activity.details = activityData.activity.state;
-                        }
-
-                        if (activityData.activity.assets?.small_text) {
-                            activityData.activity.state = activityData.activity.assets.small_text;
-                        }
-                    }
+                if (activity.assets?.small_text) {
+                    activity.state = activity.assets.small_text;
                 }
             }
-            return originalHandler.call(this, activityData);
-        };
+        },
     },
 
     settingsAboutComponent: () => {
