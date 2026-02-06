@@ -1,17 +1,70 @@
 /*
  * Vencord, a Discord client mod
- * Copyright (c) 2024 Vendicated and contributors
+ * Copyright (c) 2026 Vendicated and contributors
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
 import { definePluginSettings } from "@api/Settings";
 import ErrorBoundary from "@components/ErrorBoundary";
+import roleColorEverywhere from "@plugins/roleColorEverywhere";
 import { Devs } from "@utils/constants";
+import { useFixedTimer } from "@utils/react";
+import { formatDurationMs } from "@utils/text";
 import definePlugin, { OptionType } from "@utils/types";
-import { PassiveUpdateState, VoiceState } from "@vencord/discord-types";
-import { FluxDispatcher, GuildStore, UserStore } from "@webpack/common";
+import { findCssClassesLazy } from "@webpack";
+import { FluxDispatcher, GuildStore, Tooltip, UserStore } from "@webpack/common";
 
-import { Timer } from "./Timer";
+const containerClasses = findCssClassesLazy("container", "chipletParent");
+const voiceUserClasses = findCssClassesLazy("voiceUser", "content");
+export interface VoiceState {
+    userId: string;
+    channelId?: string;
+    oldChannelId?: string;
+    guildId?: string;
+    deaf: boolean;
+    mute: boolean;
+    selfDeaf: boolean;
+    selfMute: boolean;
+    selfStream: boolean;
+    selfVideo: boolean;
+    sessionId: string;
+    suppress: boolean;
+    requestToSpeakTimestamp: string | null;
+}
+
+export interface PassiveUpdateState {
+    type: string;
+    guildId: string;
+    members?: ({
+        user: {
+            avatar: null | string;
+            communication_disabled_until: null | string;
+            deaf: boolean;
+            flags: number;
+            joined_at: string;
+            mute: boolean;
+            nick: string;
+            pending: boolean;
+            premium_since: null | string;
+        };
+        roles: (string)[];
+        premium_since: null | string;
+        pending: boolean;
+        nick: string | null;
+        mute: boolean;
+        joined_at: string;
+        flags: number;
+        deaf: boolean;
+        communication_disabled_until: null | string;
+        avatar: null | string;
+    })[];
+    channels: ({
+        lastPinTimestamp?: string;
+        lastMessageId: string;
+        id: string;
+    })[];
+    voiceStates?: VoiceState[];
+}
 
 export const settings = definePluginSettings({
     showWithoutHover: {
@@ -22,25 +75,25 @@ export const settings = definePluginSettings({
     },
     showRoleColor: {
         type: OptionType.BOOLEAN,
-        description: "Show the user's role color (if this plugin in enabled)",
+        description: "Display in the user’s role color (if the ShowRoleColor plugin is enabled)",
         restartNeeded: false,
         default: true
     },
     trackSelf: {
         type: OptionType.BOOLEAN,
-        description: "Also track yourself",
+        description: "Also show your own timer",
         restartNeeded: false,
         default: true
     },
     showSeconds: {
         type: OptionType.BOOLEAN,
-        description: "Show seconds in the timer",
+        description: "Display seconds in the timer",
         restartNeeded: false,
         default: true
     },
     format: {
         type: OptionType.SELECT,
-        description: "Compact or human readable format:",
+        description: "Compact or human-readable format",
         options: [
             {
                 label: "30:23:00:42",
@@ -58,9 +111,14 @@ export const settings = definePluginSettings({
         description: "Track users in large guilds. This may cause lag if you're in a lot of large guilds with active voice users. Tested with up to 2000 active voice users with no issues.",
         restartNeeded: true,
         default: false
+    },
+    fixUI: {
+        type: OptionType.BOOLEAN,
+        description: "In some cases the timer may break the user interface. Enable this option to fix it.",
+        restartNeeded: true,
+        default: true
     }
 });
-
 
 // Save the join time of all users in a Map
 type userJoinData = { channelId: string, time: number; guildId: string; };
@@ -98,29 +156,47 @@ let myLastChannelId: string | undefined;
 // Allow user updates on discord first load
 let runOneTime = true;
 
+function injectCSS() {
+    if (document.getElementById("allCallTimers-css")) return;
+    const style = document.createElement("style");
+    style.id = "allCallTimers-css";
+    style.textContent = `
+        .${voiceUserClasses.voiceUser} .${containerClasses.container} .${containerClasses.chipletParent} {
+            top: -5px;
+        }
+        .${voiceUserClasses.voiceUser} .${voiceUserClasses.content} {
+            padding: 0px var(--space-xs);
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+function removeCss() {
+    const style = document.getElementById("allCallTimers-css");
+    if (style) {
+        style.remove();
+    }
+}
+
 export default definePlugin({
     name: "AllCallTimers",
     description: "Add call timer to all users in a server voice channel.",
-    authors: [Devs.MaxHerbold, Devs.D3SOX],
+    authors: [Devs.D3SOX, Devs.MutanPlex],
     settings,
+
     patches: [
         {
-            find: ".usernameSpeaking]",
-            predicate: () => !settings.store.showWithoutHover,
+            find: "VOICE_PANEL}}",
             replacement: [
                 {
-                    match: /(?<=user:(\i).*?)iconGroup,.{0,200}children:\[/,
-                    replace: "$&$self.renderTimer($1.id),"
+                    match: /user:(\i).*?\.EMBEDDED.{0,25};(?=return 0!==(\i)\.length)/,
+                    replace: "$&$2.push($self.renderTimer($1.id));",
+                    predicate: () => !settings.store.showWithoutHover,
                 },
-            ]
-        },
-        {
-            find: ".usernameSpeaking]",
-            predicate: () => settings.store.showWithoutHover,
-            replacement: [
                 {
-                    match: /function \i\(\)\{.+:""(?=.*?userId:(\i))/,
-                    replace: "$&,$self.renderTimer($1.id),"
+                    match: /#{intl::GUEST_NAME_SUFFIX}\)\]\}\):""(?=.*?userId:(\i\.\i))/,
+                    replace: "$&,$self.renderTimer($1)",
+                    predicate: () => settings.store.showWithoutHover,
                 }
             ]
         }
@@ -225,6 +301,15 @@ export default definePlugin({
         if (settings.store.watchLargeGuilds) {
             this.subscribeToAllGuilds();
         }
+        if (settings.store.fixUI) {
+            injectCSS();
+        }
+    },
+
+    stop() {
+        if (settings.store.fixUI) {
+            removeCss();
+        }
     },
 
     renderTimer(userId: string) {
@@ -239,10 +324,71 @@ export default definePlugin({
             return;
         }
 
+        // role color everywhere plugin get user gradient color
+        const colorStyle = settings.store.showRoleColor ? roleColorEverywhere.getColorStyle(userId, joinTime.guildId) : {};
+
         return (
             <ErrorBoundary>
-                <Timer time={joinTime.time} />
+                <Timer time={joinTime.time} defaultStyle={colorStyle ?? undefined} />
             </ErrorBoundary>
         );
     },
 });
+
+export function Timer({ time, defaultStyle }: Readonly<{
+    time: number;
+    defaultStyle?: React.CSSProperties;
+}>) {
+    const durationMs = useFixedTimer({ initialTime: time });
+    const formatted = formatDurationMs(durationMs, settings.store.format === "human", settings.store.showSeconds);
+
+    if (settings.store.showWithoutHover) {
+        return <TimerText text={formatted} style={defaultStyle} />;
+    } else {
+        // show as a tooltip
+        return (
+            <Tooltip text={formatted}>
+                {({ onMouseEnter, onMouseLeave }) => (
+                    <div
+                        onMouseEnter={onMouseEnter}
+                        onMouseLeave={onMouseLeave}
+                        role="tooltip"
+                    >
+                        <TimerIcon />
+                    </div>
+                )}
+            </Tooltip>
+        );
+    }
+}
+
+export function TimerIcon({ height = 16, width = 16, className }: Readonly<{
+    height?: number;
+    width?: number;
+    className?: string;
+}>) {
+    return (
+        <svg
+            viewBox="0 0 455 455"
+            height={height}
+            width={width}
+            className={className}
+            style={{ color: "var(--channels-default)" }}
+        >
+            <path fill="currentColor" d="M332.229,90.04l14.238-27.159l-26.57-13.93L305.67,76.087c-19.618-8.465-40.875-13.849-63.17-15.523V30h48.269V0H164.231v30
+        H212.5v30.563c-22.295,1.674-43.553,7.059-63.171,15.523L135.103,48.95l-26.57,13.93l14.239,27.16
+        C67.055,124.958,30,186.897,30,257.5C30,366.576,118.424,455,227.5,455S425,366.576,425,257.5
+        C425,186.896,387.944,124.958,332.229,90.04z M355,272.5H212.5V130h30v112.5H355V272.5z"/>
+        </svg>
+    );
+}
+export function TimerText({ text, style }: Readonly<{ text: string; style?: React.CSSProperties; }>) {
+    return <div className={"timeCounter"} style={{
+        fontWeight: "bold",
+        fontFamily: "monospace",
+        fontSize: 11,
+        lineHeight: "7px",
+        position: "relative",
+        ...style
+    }}>{text}</div>;
+}

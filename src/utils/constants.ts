@@ -497,6 +497,10 @@ export const Devs = /* #__PURE__*/ Object.freeze({
         name: "Loukious",
         id: 211461918127292416n
     },
+    MutanPlex: {
+        name: "MutanPlex",
+        id: 506074187014602752n
+    },
     keyages: {
         name: "Key",
         id: 1230319937155760131n
