@@ -338,7 +338,13 @@ export default definePlugin({
             try {
                 const res = await RestAPI.get({ url: `/applications/public?application_ids=${applicationId}` });
                 const appData = res.body[0];
-                const exeName = appData.executables.find(x => x.os === "win32").name.replace(">", "");
+                let exeName = applicationName.toLowerCase().replace(/\s+/g, "") + ".exe";
+                if (appData.executables && Array.isArray(appData.executables)) {
+                    const executable = appData.executables.find(x => x.os === "win32");
+                    if (executable && executable.name) {
+                        exeName = executable.name.replace(">", "");
+                    }
+                }
                 const pid = Math.floor(Math.random() * 30000) + 1000;
 
                 const fakeGame = {
