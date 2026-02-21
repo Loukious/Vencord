@@ -270,7 +270,7 @@ export default definePlugin({
             }
         },
         {
-            find: "#{intl::ACCOUNT_SPEAKING_WHILE_MUTED}",
+            find: ".WIDGETS_RTC_UPSELL_COACHMARK),",
             replacement: {
                 match: /speaking:.{0,100}style:.,children:\[/,
                 replace: "$&$self.fakeDeafenToggleButton(arguments[0]),"
