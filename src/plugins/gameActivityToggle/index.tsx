@@ -112,7 +112,7 @@ export default definePlugin({
 
     patches: [
         {
-            find: ".WIDGETS_RTC_UPSELL_COACHMARK),",
+            find: ".DISPLAY_NAME_STYLES_COACHMARK),",
             replacement: {
                 match: /speaking:.{0,100}style:.,children:\[/,
                 replace: "$&$self.GameActivityToggleButton(arguments[0]),"
