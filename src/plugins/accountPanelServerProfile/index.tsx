@@ -67,7 +67,7 @@ export default definePlugin({
 
     patches: [
         {
-            find: ".WIDGETS_RTC_UPSELL_COACHMARK)",
+            find: ".DISPLAY_NAME_STYLES_COACHMARK)",
             group: true,
             replacement: [
                 {
