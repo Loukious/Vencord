@@ -254,12 +254,21 @@ export function patchConnectionVideoTransportOptions(
     };
 
     connection.conn.setTransportOptions = function (this: any, options: Record<string, any>) {
+        const incomingIsArray = Array.isArray(options.streamParameters);
+
         const replaceableTransportOptions = getReplaceableVideoTransportationOptions(connection, get);
 
         if (options.streamParameters)
-            connection.videoStreamParameters = Array.isArray(options.streamParameters) ? options.streamParameters : [options.streamParameters];
+            connection.videoStreamParameters = incomingIsArray
+                ? options.streamParameters
+                : [options.streamParameters];
 
-        replaceObjectValuesIfExist(options, replaceableTransportOptions);
+        const streamParams = replaceableTransportOptions.streamParameters;
+
+        Object.assign(options, {
+            ...replaceableTransportOptions,
+            streamParameters: incomingIsArray ? [streamParams] : streamParams // preserve array format
+        });
 
         logger?.info("Overridden Transport Options", options);
 
@@ -267,7 +276,13 @@ export function patchConnectionVideoTransportOptions(
     };
 
     const forceUpdateTransportationOptions = () => {
-        const transportOptions = lodash.merge({ ...getDefaultVideoTransportationOptions(connection) }, getReplaceableVideoTransportationOptions(connection, get));
+        const base = { ...getDefaultVideoTransportationOptions(connection) };
+        const replaceable = getReplaceableVideoTransportationOptions(connection, get);
+
+        const transportOptions = lodash.merge(base, {
+            ...replaceable,
+            streamParameters: [replaceable.streamParameters] // always array
+        });
 
         logger?.info("Force Updated Transport Options", transportOptions);
 
