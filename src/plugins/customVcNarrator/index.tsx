@@ -53,7 +53,7 @@ async function speak(text: string) {
             throw new Error("No voice selected");
         }
 
-        const base64Audio = await Native.getAudio(text, "tt-" + voice.id);
+        const base64Audio = await Native.getAudio(text, voice.id);
 
         // Convert base64 audio data to ArrayBuffer
         const binaryString = atob(base64Audio);

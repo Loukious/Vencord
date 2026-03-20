@@ -7,22 +7,25 @@
 export async function getAudio(_, text: string, selectedVoiceValue: string): Promise<string> {
     if (!text || !selectedVoiceValue) throw new Error("Text or voice not provided");
 
-    const url = "https://ttsvibes.com/?/generate";
-    const body = new URLSearchParams({ text, selectedVoiceValue }).toString();
-
-    const response = await fetch(url, {
+    const response = await fetch("https://ottsy.weilbyte.dev/api/generation", {
         method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded", "origin": "https://ttsvibes.com" },
-        body
+        headers: {
+            "Content-Type": "application/json",
+            "origin": "https://ottsy.weilbyte.dev"
+        },
+        body: JSON.stringify({
+            text,
+            voice: selectedVoiceValue
+        })
     });
 
     if (!response.ok) throw new Error(`TTS API error: ${response.status} ${response.statusText}`);
 
     const data = await response.json();
-    if (data.type !== "success" || data.status !== 200) {
+
+    if (!data?.success) {
         throw new Error(data?.error || "Unknown TTS API error");
     }
 
-    const parsedData = JSON.parse(data.data);
-    return parsedData[2]; // base64 audio
+    return data.data;
 }
