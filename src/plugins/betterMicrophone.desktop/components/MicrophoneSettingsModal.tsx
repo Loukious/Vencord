@@ -18,6 +18,8 @@
 
 import { Card } from "@components/Card";
 import { Flex } from "@components/Flex";
+import { Heading } from "@components/Heading";
+import { Paragraph } from "@components/Paragraph";
 import { Switch } from "@components/Switch";
 import { MicrophoneProfile, MicrophoneStore } from "@plugins/betterMicrophone.desktop/stores";
 import {
@@ -33,7 +35,7 @@ import {
 import { Styles } from "@plugins/philsPluginLibrary/styles";
 import { ModalSize } from "@utils/modal";
 import { SelectOption } from "@vencord/discord-types";
-import { Forms, Select, Slider, TextInput, useEffect, useState } from "@webpack/common";
+import { Select, Slider, TextInput, useEffect, useState } from "@webpack/common";
 
 const simpleVoiceBitrates: readonly SelectOption[] = [
     {
@@ -118,7 +120,7 @@ export const MicrophoneSettingsModal = (props: MicrophoneSettingsModalProps) => 
 
     const simpleToggle =
         <Flex style={{ justifyContent: "center", alignItems: "center", gap: "0.6em" }}>
-            <Forms.FormTitle style={{ margin: 0 }} tag="h5">Simple</Forms.FormTitle>
+            <Heading style={{ margin: 0 }} tag="h5">Simple</Heading>
             <Switch checked={simpleMode ?? false} disabled={isSaving} onChange={checked => setSimpleMode(checked)} />
         </Flex>;
 
@@ -277,10 +279,13 @@ export const MicrophoneSettingsModal = (props: MicrophoneSettingsModalProps) => 
 
     const infoCard =
         <Card style={{ ...Styles.infoCard }}>
-            <Forms.FormTitle tag="h5">Important</Forms.FormTitle>
-            <Forms.FormText>
-                To take full advantage of this plugin, please disable <span style={{ fontWeight: "bold" }}>Krisp</span> and <span style={{ fontWeight: "bold" }}>Echo Cancellation</span>, otherwise features like Stereo (Channels) will not work.
-            </Forms.FormText>
+            <Heading tag="h5">Important</Heading>
+            <Paragraph>
+                For stereo and the native bitrate or sample-rate unlocks to work, please enable <span style={{ fontWeight: "bold" }}>VoicePatcher</span> plugin.
+            </Paragraph>
+            <Paragraph>
+                Please also disable <span style={{ fontWeight: "bold" }}>Krisp</span> and <span style={{ fontWeight: "bold" }}>Echo Cancellation</span>, otherwise features like Stereo (Channels) may still not work correctly.
+            </Paragraph>
         </Card>;
 
     return (

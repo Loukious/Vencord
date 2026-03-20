@@ -21,7 +21,7 @@ import { Devs } from "@utils/constants";
 
 export const PluginInfo = {
     PLUGIN_NAME: "BetterMicrophone",
-    DESCRIPTION: "This plugin allows you to further customize your microphone.",
+    DESCRIPTION: "Customize your microphone. Stereo and native voice unlocks require VoicePatcher plugin.",
     AUTHOR: {
         ...Devs.philhk,
         github: "https://github.com/philhk"

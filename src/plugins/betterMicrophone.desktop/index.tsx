@@ -81,7 +81,7 @@ const settings = definePluginSettings({
 
 export default definePlugin({
     name: "BetterMicrophone",
-    description: "This plugin allows you to further customize your microphone.",
+    description: "Customize your microphone. Stereo and native voice unlocks require VoicePatcher plugin.",
     authors: [Devs.philhk],
     dependencies: ["PhilsPluginLibrary"],
     patches: [
