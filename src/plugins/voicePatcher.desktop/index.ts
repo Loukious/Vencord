@@ -42,9 +42,13 @@ export default definePlugin({
                 for (const p of result.patches) {
                     const icon = p.status === "ok" ? "✓"
                         : p.status === "already_patched" ? "~"
-                            : /(not[_-]?found|missing|unresolved|invalid)/i.test(p.status) ? "?"
+                            : /(not[_-]?resolved|not[_-]?found|missing|unresolved|invalid)/i.test(p.status) ? "?"
                                 : "✗";
-                    console.log(`[VoicePatcher] ${icon} ${p.name}: ${p.status}${p.rva ? ` @ RVA ${p.rva}` : ""}`);
+                    console.log(
+                        `[VoicePatcher] ${icon} ${p.name}: ${p.status}` +
+                        `${p.tier ? ` [${p.tier}]` : ""}` +
+                        `${p.rva ? ` @ RVA ${p.rva}` : ""}`
+                    );
                 }
 
                 console.log(`[VoicePatcher] Done — ok:${result.ok} failed:${result.failed} skipped:${result.skipped}`);
