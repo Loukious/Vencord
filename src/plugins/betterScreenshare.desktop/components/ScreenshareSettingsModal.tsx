@@ -98,6 +98,11 @@ const simpleVideoBitrates: readonly SelectOption[] = [
     }
 ] as const;
 
+interface CodecSelectOption extends SelectOption {
+    value: string;
+    encode: boolean;
+}
+
 export interface ScreenshareSettingsModalProps extends React.ComponentProps<typeof SettingsModal> {
     screenshareStore: ProfilableStore<ScreenshareStore, ScreenshareProfile>;
     screenshareAudioStore?: ProfilableStore<ScreenshareAudioStore, ScreenshareAudioProfile>;
@@ -151,6 +156,13 @@ export const ScreenshareSettingsModal = (props: ScreenshareSettingsModalProps) =
     } = currentProfile;
 
     const [videoCodecs, setVideoCodecs] = useState<types.CodecCapabilities[]>([]);
+
+    const codecOptions: CodecSelectOption[] = videoCodecs.map(codecCapabilities => ({
+        label: codecCapabilities.codec,
+        value: codecCapabilities.codec,
+        key: codecCapabilities.codec,
+        encode: codecCapabilities.encode
+    }));
 
     const [isSaving, setIsSaving] = useState(false);
 
@@ -392,9 +404,27 @@ export const ScreenshareSettingsModal = (props: ScreenshareSettingsModalProps) =
                 <Select
                     isDisabled={!videoCodecEnabled || isSaving}
                     isSelected={value => value === videoCodec}
-                    options={videoCodecs.map(codecCapabilities => ({ label: codecCapabilities.codec, value: codecCapabilities.codec }))}
+                    options={codecOptions}
                     select={value => setVideoCodec(value)}
-                    serialize={() => ""} />
+                    serialize={value => String(value)}
+                    renderOptionLabel={option => {
+                        const codecOption = option as CodecSelectOption;
+                        const supportsEncode = codecOption.encode;
+
+                        return (
+                            <div style={{ display: "flex", alignItems: "center", gap: "0.5em" }}>
+                                <span
+                                    style={{
+                                        color: supportsEncode ? "var(--status-positive)" : "var(--status-danger)",
+                                        fontWeight: 700
+                                    }}
+                                >
+                                    {supportsEncode ? "\u2713" : "\u2717"}
+                                </span>
+                                <span>{codecOption.label}</span>
+                            </div>
+                        );
+                    }} />
             </SettingsModalCardItem>
         </SettingsModalCard>;
 
