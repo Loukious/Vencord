@@ -598,8 +598,7 @@ export const ScreenshareSettingsModal = (props: ScreenshareSettingsModalProps) =
 
     const guideCard =
         <Card style={{ ...Styles.infoCard, flex: 0.4 }}>
-            <Forms.FormTitle tag="h5">How to use?</Forms.FormTitle>
-            <Forms.FormText>If you want to know more about the settings or possible issues, please read <a onClick={() => openURL(PluginInfo.README + "#better-screenshare-plugin")}>this</a>.</Forms.FormText>
+            <Paragraph>Note: Using a custom bitrate requires the VoicePatcher plugin to be enabled.</Paragraph>
         </Card>;
 
     const settingsCardProfiles =
