@@ -27,6 +27,9 @@ export interface ScreenshareProfile {
     videoCodec?: string,
     keyframeInterval?: number,
     videoBitrate?: number;
+    videoBitrateMin?: number;
+    videoBitrateTarget?: number;
+    videoBitrateMax?: number;
     videoBitrateEnabled?: boolean;
     resolutionEnabled?: boolean,
     framerateEnabled?: boolean,
@@ -45,6 +48,9 @@ export interface ScreenshareStore {
     setVideoCodec: (codec?: string) => void;
     setKeyframeInterval: (keyframeInterval?: number) => void;
     setVideoBitrate: (bitrate?: number) => void;
+    setVideoBitrateMin: (bitrate?: number) => void;
+    setVideoBitrateTarget: (bitrate?: number) => void;
+    setVideoBitrateMax: (bitrate?: number) => void;
     setKeyframeIntervalEnabled: (enabled?: boolean) => void;
     setResolutionEnabled: (enabled?: boolean) => void;
     setFramerateEnabled: (enabled?: boolean) => void;
@@ -63,6 +69,9 @@ export const defaultScreenshareProfiles = {
         height: 720,
         framerate: 60,
         videoBitrate: 2500,
+        videoBitrateMin: 2500,
+        videoBitrateTarget: 2500,
+        videoBitrateMax: 2500,
         resolutionEnabled: true,
         framerateEnabled: true,
         videoBitrateEnabled: true,
@@ -73,6 +82,9 @@ export const defaultScreenshareProfiles = {
         height: 1080,
         framerate: 60,
         videoBitrate: 5000,
+        videoBitrateMin: 5000,
+        videoBitrateTarget: 5000,
+        videoBitrateMax: 5000,
         resolutionEnabled: true,
         framerateEnabled: true,
         videoBitrateEnabled: true,
@@ -83,6 +95,9 @@ export const defaultScreenshareProfiles = {
         height: 1080,
         framerate: 60,
         videoBitrate: 10000,
+        videoBitrateMin: 10000,
+        videoBitrateTarget: 10000,
+        videoBitrateMax: 10000,
         resolutionEnabled: true,
         framerateEnabled: true,
         videoBitrateEnabled: true,
@@ -90,7 +105,18 @@ export const defaultScreenshareProfiles = {
 } as const satisfies Record<string, ScreenshareProfile & ProfileableProfile>;
 
 export const screenshareStoreDefault: ProfilableInitializer<ScreenshareStore, ScreenshareProfile> = (set, get) => ({
-    setVideoBitrate: bitrate => get().currentProfile.videoBitrate = bitrate,
+    setVideoBitrate: bitrate => {
+        get().currentProfile.videoBitrate = bitrate;
+        get().currentProfile.videoBitrateMin = bitrate;
+        get().currentProfile.videoBitrateTarget = bitrate;
+        get().currentProfile.videoBitrateMax = bitrate;
+    },
+    setVideoBitrateMin: bitrate => get().currentProfile.videoBitrateMin = bitrate,
+    setVideoBitrateTarget: bitrate => {
+        get().currentProfile.videoBitrateTarget = bitrate;
+        get().currentProfile.videoBitrate = bitrate;
+    },
+    setVideoBitrateMax: bitrate => get().currentProfile.videoBitrateMax = bitrate,
     setVideoBitrateEnabled: enabled => get().currentProfile.videoBitrateEnabled = enabled,
     setVideoCodec: codec => get().currentProfile.videoCodec = codec,
     setVideoCodecEnabled: enabled => get().currentProfile.videoCodecEnabled = enabled,

@@ -117,6 +117,9 @@ export const ScreenshareSettingsModal = (props: ScreenshareSettingsModalProps) =
         profiles,
         simpleMode,
         setVideoBitrateEnabled,
+        setVideoBitrateMax,
+        setVideoBitrateMin,
+        setVideoBitrateTarget,
         setVideoCodec,
         setVideoCodecEnabled,
         setFramerate,
@@ -148,6 +151,9 @@ export const ScreenshareSettingsModal = (props: ScreenshareSettingsModalProps) =
         keyframeIntervalEnabled,
         resolutionEnabled,
         videoBitrate,
+        videoBitrateMax,
+        videoBitrateMin,
+        videoBitrateTarget,
         videoBitrateEnabled,
         videoCodec,
         videoCodecEnabled,
@@ -166,17 +172,34 @@ export const ScreenshareSettingsModal = (props: ScreenshareSettingsModalProps) =
 
     const [isSaving, setIsSaving] = useState(false);
 
+    const [isDetailedBitrate, setIsDetailedBitrate] = useState<boolean>(() => {
+        const min = videoBitrateMin ?? videoBitrate;
+        const target = videoBitrateTarget ?? videoBitrate;
+        const max = videoBitrateMax ?? videoBitrate;
+        return min !== target || target !== max || min !== max;
+    });
+
     const [textinputWidth, setTextinputWidth] = useState<string>(width ? width.toString() : "");
     const [textinputHeight, setTextinputHeight] = useState<string>(height ? height.toString() : "");
     const [textinputFramerate, setTextinputFramerate] = useState<string>(framerate ? framerate.toString() : "");
     const [textinputKeyframeInterval, setTextinputKeyframeInterval] = useState<string>(keyframeInterval ? keyframeInterval.toString() : "");
+    const [textinputVideoBitrateMin, setTextinputVideoBitrateMin] = useState<string>((videoBitrateMin ?? videoBitrate) ? (videoBitrateMin ?? videoBitrate)!.toString() : "");
+    const [textinputVideoBitrateTarget, setTextinputVideoBitrateTarget] = useState<string>((videoBitrateTarget ?? videoBitrate) ? (videoBitrateTarget ?? videoBitrate)!.toString() : "");
+    const [textinputVideoBitrateMax, setTextinputVideoBitrateMax] = useState<string>((videoBitrateMax ?? videoBitrate) ? (videoBitrateMax ?? videoBitrate)!.toString() : "");
+
+    const [sliderKeyMin, setSliderKeyMin] = useState(0);
+    const [sliderKeyTarget, setSliderKeyTarget] = useState(0);
+    const [sliderKeyMax, setSliderKeyMax] = useState(0);
 
     useEffect(() => {
         setTextinputWidth(width ? width.toString() : "");
         setTextinputHeight(height ? height.toString() : "");
         setTextinputFramerate(framerate ? framerate.toString() : "");
         setTextinputKeyframeInterval(keyframeInterval ? keyframeInterval.toString() : "");
-    }, [width, height, framerate, keyframeInterval]);
+        setTextinputVideoBitrateMin((videoBitrateMin ?? videoBitrate) ? (videoBitrateMin ?? videoBitrate)!.toString() : "");
+        setTextinputVideoBitrateTarget((videoBitrateTarget ?? videoBitrate) ? (videoBitrateTarget ?? videoBitrate)!.toString() : "");
+        setTextinputVideoBitrateMax((videoBitrateMax ?? videoBitrate) ? (videoBitrateMax ?? videoBitrate)!.toString() : "");
+    }, [width, height, framerate, keyframeInterval, videoBitrate, videoBitrateMin, videoBitrateTarget, videoBitrateMax]);
 
     useEffect(() => {
         (async () => {
@@ -226,7 +249,7 @@ export const ScreenshareSettingsModal = (props: ScreenshareSettingsModalProps) =
                     isDisabled={!videoBitrateEnabled || isSaving}
                     options={simpleVideoBitrates}
                     select={(value: number) => void setVideoBitrate(value)}
-                    isSelected={(value: number) => videoBitrate === value}
+                    isSelected={(value: number) => (videoBitrateTarget ?? videoBitrate) === value}
                     serialize={() => ""} />
             </SettingsModalCardItem>
         </SettingsModalCard>;
@@ -328,26 +351,160 @@ export const ScreenshareSettingsModal = (props: ScreenshareSettingsModalProps) =
 
     const settingsCardVideoBitrate =
         <SettingsModalCard
-            title="Video Bitrate"
-            flex={0.4}
-            switchEnabled
-            switchProps={{
-                checked: videoBitrateEnabled ?? false,
-                disabled: isSaving,
-                onChange: status => setVideoBitrateEnabled(status)
-            }}>
-            <SettingsModalCardItem title="Kb/s">
-                <div style={{ paddingTop: "0.3em", paddingRight: "0.4em", paddingLeft: "0.4em", boxSizing: "border-box" }}>
-                    <Slider
-                        disabled={!videoBitrateEnabled || isSaving}
-                        onValueChange={value => setVideoBitrate(value)}
-                        initialValue={videoBitrate || 500}
-                        minValue={500}
-                        maxValue={10000}
-                        markers={[500, 10000]}
-                        onValueRender={value => `${value.toFixed(0)}kb/s`} />
+            title="Video Bitrates"
+            flex={0.4}>
+            <div style={{ display: "flex", flexDirection: "row", width: "100%", gap: "1em" }}>
+                <div style={{ display: "flex", flexDirection: "column", flex: 1, gap: "1em" }}>
+                    {isDetailedBitrate ? (
+                        <Flex style={{ flexDirection: "column", gap: "1em", width: "100%" }}>
+                            <SettingsModalCardItem title="Min (Kb/s)">
+                                <Flex style={{ gap: "1em", alignItems: "center", marginTop: "0.5em" }}>
+                                    <div style={{ width: "95px" }}>
+                                        <TextInput
+                                            disabled={!videoBitrateEnabled || isSaving}
+                                            value={textinputVideoBitrateMin}
+                                            onChange={value => validateTextInputNumber(value) && setTextinputVideoBitrateMin(value)}
+                                            onBlur={e => {
+                                                const result = validateNumberInput(e.target.value);
+                                                const clamped = result !== undefined ? Math.min(Math.max(result, 500), 10000) : undefined;
+                                                setVideoBitrateMin(clamped);
+                                                setTextinputVideoBitrateMin(clamped ? clamped.toString() : "");
+                                                setSliderKeyMin(prev => prev + 1);
+                                            }} />
+                                    </div>
+                                    <div style={{ flex: 1, paddingTop: "0.3em", paddingRight: "0.4em", paddingLeft: "0.4em", boxSizing: "border-box" }}>
+                                        <Slider
+                                            key={`slider-min-${sliderKeyMin}`}
+                                            disabled={!videoBitrateEnabled || isSaving}
+                                            onValueChange={value => setVideoBitrateMin(value)}
+                                            initialValue={videoBitrateMin ?? videoBitrate ?? 500}
+                                            minValue={500}
+                                            maxValue={10000}
+                                            markers={[500, 10000]}
+                                            onValueRender={value => `${value.toFixed(0)}kb/s`} />
+                                    </div>
+                                </Flex>
+                            </SettingsModalCardItem>
+                            <SettingsModalCardItem title="Target (Kb/s)">
+                                <Flex style={{ gap: "1em", alignItems: "center", marginTop: "0.5em" }}>
+                                    <div style={{ width: "95px" }}>
+                                        <TextInput
+                                            disabled={!videoBitrateEnabled || isSaving}
+                                            value={textinputVideoBitrateTarget}
+                                            onChange={value => validateTextInputNumber(value) && setTextinputVideoBitrateTarget(value)}
+                                            onBlur={e => {
+                                                const result = validateNumberInput(e.target.value);
+                                                const clamped = result !== undefined ? Math.min(Math.max(result, 500), 10000) : undefined;
+                                                setVideoBitrateTarget(clamped);
+                                                setTextinputVideoBitrateTarget(clamped ? clamped.toString() : "");
+                                                setSliderKeyTarget(prev => prev + 1);
+                                            }} />
+                                    </div>
+                                    <div style={{ flex: 1, paddingTop: "0.3em", paddingRight: "0.4em", paddingLeft: "0.4em", boxSizing: "border-box" }}>
+                                        <Slider
+                                            key={`slider-target-${sliderKeyTarget}`}
+                                            disabled={!videoBitrateEnabled || isSaving}
+                                            onValueChange={value => setVideoBitrateTarget(value)}
+                                            initialValue={videoBitrateTarget ?? videoBitrate ?? 500}
+                                            minValue={500}
+                                            maxValue={10000}
+                                            markers={[500, 10000]}
+                                            onValueRender={value => `${value.toFixed(0)}kb/s`} />
+                                    </div>
+                                </Flex>
+                            </SettingsModalCardItem>
+                            <SettingsModalCardItem title="Max (Kb/s)">
+                                <Flex style={{ gap: "1em", alignItems: "center", marginTop: "0.5em" }}>
+                                    <div style={{ width: "95px" }}>
+                                        <TextInput
+                                            disabled={!videoBitrateEnabled || isSaving}
+                                            value={textinputVideoBitrateMax}
+                                            onChange={value => validateTextInputNumber(value) && setTextinputVideoBitrateMax(value)}
+                                            onBlur={e => {
+                                                const result = validateNumberInput(e.target.value);
+                                                const clamped = result !== undefined ? Math.min(Math.max(result, 500), 10000) : undefined;
+                                                setVideoBitrateMax(clamped);
+                                                setTextinputVideoBitrateMax(clamped ? clamped.toString() : "");
+                                                setSliderKeyMax(prev => prev + 1);
+                                            }} />
+                                    </div>
+                                    <div style={{ flex: 1, paddingTop: "0.3em", paddingRight: "0.4em", paddingLeft: "0.4em", boxSizing: "border-box" }}>
+                                        <Slider
+                                            key={`slider-max-${sliderKeyMax}`}
+                                            disabled={!videoBitrateEnabled || isSaving}
+                                            onValueChange={value => setVideoBitrateMax(value)}
+                                            initialValue={videoBitrateMax ?? videoBitrate ?? 500}
+                                            minValue={500}
+                                            maxValue={10000}
+                                            markers={[500, 10000]}
+                                            onValueRender={value => `${value.toFixed(0)}kb/s`} />
+                                    </div>
+                                </Flex>
+                            </SettingsModalCardItem>
+                        </Flex>
+                    ) : (
+                        <SettingsModalCardItem title="Static (Kb/s)">
+                            <Flex style={{ gap: "1em", alignItems: "center", marginTop: "0.5em" }}>
+                                <div style={{ width: "95px" }}>
+                                    <TextInput
+                                        disabled={!videoBitrateEnabled || isSaving}
+                                        value={textinputVideoBitrateTarget}
+                                        onChange={value => validateTextInputNumber(value) && setTextinputVideoBitrateTarget(value)}
+                                        onBlur={e => {
+                                            const result = validateNumberInput(e.target.value);
+                                            const clamped = result !== undefined ? Math.min(Math.max(result, 500), 10000) : undefined;
+                                            setVideoBitrateMin(clamped);
+                                            setVideoBitrateTarget(clamped);
+                                            setVideoBitrateMax(clamped);
+                                            setVideoBitrate(clamped);
+
+                                            const stringVal = clamped ? clamped.toString() : "";
+                                            setTextinputVideoBitrateMin(stringVal);
+                                            setTextinputVideoBitrateTarget(stringVal);
+                                            setTextinputVideoBitrateMax(stringVal);
+
+                                            setSliderKeyTarget(prev => prev + 1);
+                                        }} />
+                                </div>
+                                <div style={{ flex: 1, paddingTop: "0.3em", paddingRight: "0.4em", paddingLeft: "0.4em", boxSizing: "border-box" }}>
+                                    <Slider
+                                        key={`slider-all-${sliderKeyTarget}`}
+                                        disabled={!videoBitrateEnabled || isSaving}
+                                        onValueChange={value => {
+                                            setVideoBitrateMin(value);
+                                            setVideoBitrateTarget(value);
+                                            setVideoBitrateMax(value);
+                                            setVideoBitrate(value);
+                                        }}
+                                        initialValue={videoBitrateTarget ?? videoBitrate ?? 500}
+                                        minValue={500}
+                                        maxValue={10000}
+                                        markers={[500, 10000]}
+                                        onValueRender={value => `${value.toFixed(0)}kb/s`} />
+                                </div>
+                            </Flex>
+                        </SettingsModalCardItem>
+                    )}
                 </div>
-            </SettingsModalCardItem>
+                <div style={{ display: "flex", flexDirection: "column", width: "80px", gap: "1em", alignItems: "center", justifyContent: "flex-start", paddingTop: "0.6em" }}>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                        <Forms.FormTitle tag="h5">Status</Forms.FormTitle>
+                        <Switch
+                            checked={videoBitrateEnabled ?? false}
+                            disabled={isSaving}
+                            onChange={status => setVideoBitrateEnabled(status)}
+                        />
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                        <Forms.FormTitle tag="h5" style={{ textAlign: "center", lineHeight: "1.2" }}>Detailed Settings</Forms.FormTitle>
+                        <Switch
+                            checked={isDetailedBitrate}
+                            disabled={!videoBitrateEnabled || isSaving}
+                            onChange={checked => setIsDetailedBitrate(checked)}
+                        />
+                    </div>
+                </div>
+            </div>
         </SettingsModalCard>;
 
     const settingsCardAudioProps: React.ComponentProps<typeof SettingsModalCard> = {

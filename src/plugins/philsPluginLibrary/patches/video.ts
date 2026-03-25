@@ -47,6 +47,33 @@ export function getDefaultVideoDesktopSourceOptions(connection: types.Connection
     };
 }
 
+function getResolvedVideoBitrates(
+    currentProfile: ScreenshareProfile,
+    fallbackBitrateMax?: number
+) {
+    const legacyBitrate = currentProfile.videoBitrate;
+    const minBitrate = currentProfile.videoBitrateMin ?? legacyBitrate;
+    const targetBitrate = currentProfile.videoBitrateTarget ?? legacyBitrate;
+    const maxBitrate = currentProfile.videoBitrateMax ?? legacyBitrate;
+    const fallbackBitrate = fallbackBitrateMax ? fallbackBitrateMax / 1000 : undefined;
+
+    const resolvedMin = minBitrate ?? targetBitrate ?? maxBitrate ?? fallbackBitrate;
+    const resolvedTarget = targetBitrate ?? legacyBitrate ?? maxBitrate ?? minBitrate ?? fallbackBitrate;
+    const resolvedMax = maxBitrate ?? targetBitrate ?? minBitrate ?? fallbackBitrate;
+
+    if (resolvedMin == null || resolvedTarget == null || resolvedMax == null) return;
+
+    const normalizedMin = Math.min(resolvedMin, resolvedTarget, resolvedMax);
+    const normalizedMax = Math.max(resolvedMin, resolvedTarget, resolvedMax);
+    const normalizedTarget = Math.min(Math.max(resolvedTarget, normalizedMin), normalizedMax);
+
+    return {
+        minBitrate: Math.round(normalizedMin * 1000),
+        targetBitrate: Math.round(normalizedTarget * 1000),
+        maxBitrate: Math.round(normalizedMax * 1000)
+    };
+}
+
 export function getStreamParameters(connection: types.Connection, get: ProfilableStore<ScreenshareStore, ScreenshareProfile>["get"]) {
     const { currentProfile } = get();
     const {
@@ -60,13 +87,18 @@ export function getStreamParameters(connection: types.Connection, get: Profilabl
     } = currentProfile;
 
     const { bitrateMax, capture } = connection.applyQualityConstraints({}).quality;
+    const resolvedBitrates = videoBitrateEnabled
+        ? getResolvedVideoBitrates(currentProfile, bitrateMax)
+        : void 0;
 
     return {
         ...connection.videoStreamParameters[0],
         quality: 100,
-        ...(videoBitrateEnabled && videoBitrate
+        ...(resolvedBitrates
             ? {
-                maxBitrate: videoBitrate * 1000,
+                maxBitrate: resolvedBitrates.maxBitrate,
+                minBitrate: resolvedBitrates.minBitrate,
+                targetBitrate: resolvedBitrates.targetBitrate,
             }
             : {
                 maxBitrate: bitrateMax
@@ -120,16 +152,19 @@ export function getReplaceableVideoTransportationOptions(connection: types.Conne
         videoCodecEnabled,
         width,
     } = currentProfile;
+    const resolvedBitrates = videoBitrateEnabled
+        ? getResolvedVideoBitrates(currentProfile)
+        : void 0;
 
     return {
-        ...(videoBitrateEnabled && videoBitrate
+        ...(resolvedBitrates
             ? {
-                encodingVideoBitRate: Math.round(videoBitrate * 1000),
-                encodingVideoMinBitRate: Math.round(videoBitrate * 1000),
-                encodingVideoMaxBitRate: Math.round(videoBitrate * 1000),
-                callBitRate: Math.round(videoBitrate * 1000),
-                callMinBitRate: Math.round(videoBitrate * 1000),
-                callMaxBitRate: Math.round(videoBitrate * 1000)
+                encodingVideoBitRate: resolvedBitrates.targetBitrate,
+                encodingVideoMinBitRate: resolvedBitrates.minBitrate,
+                encodingVideoMaxBitRate: resolvedBitrates.maxBitrate,
+                callBitRate: resolvedBitrates.targetBitrate,
+                callMinBitRate: resolvedBitrates.minBitrate,
+                callMaxBitRate: resolvedBitrates.maxBitrate
             }
             : {}
         ),
@@ -229,14 +264,17 @@ export function patchConnectionVideoTransportOptions(
 
     connection.videoQualityManager.getQuality = function (src) {
         const { currentProfile } = get();
-        const { videoBitrateEnabled, videoBitrate, framerateEnabled, framerate, resolutionEnabled, width, height } = currentProfile;
+        const { videoBitrateEnabled, framerateEnabled, framerate, resolutionEnabled, width, height } = currentProfile;
+        const resolvedBitrates = videoBitrateEnabled
+            ? getResolvedVideoBitrates(currentProfile)
+            : void 0;
 
         const quality = oldGetQuality.call(this, src);
 
-        if (videoBitrateEnabled) {
-            quality.bitrateMax = Math.round(videoBitrate! * 1000);
-            quality.bitrateMin = Math.round(videoBitrate! * 1000);
-            quality.bitrateTarget = Math.round(videoBitrate! * 1000);
+        if (resolvedBitrates) {
+            quality.bitrateMax = resolvedBitrates.maxBitrate;
+            quality.bitrateMin = resolvedBitrates.minBitrate;
+            quality.bitrateTarget = resolvedBitrates.targetBitrate;
         }
 
         quality.localWant = 100;
