@@ -208,8 +208,49 @@ function inspectVoicePatcherIni(iniPath: string) {
     };
 }
 
-export async function applyPatches(event: IpcMainInvokeEvent) {
+export async function getOriginalIniPatches(event: IpcMainInvokeEvent) {
+    const { iniPath } = await resolvePluginAssets();
+    const ini = readFileSync(iniPath, "utf8");
+    const patches: { name: string; content: string; }[] = [];
+    for (const rawBlock of ini.split(/\r?\n(?=\[)/)) {
+        if (!rawBlock.trim()) continue;
+        const nameMatch = rawBlock.match(/^\[(.+?)\]/m);
+        if (nameMatch) {
+            patches.push({ name: nameMatch[1], content: rawBlock.trim() });
+        }
+    }
+    return patches;
+}
+
+export async function applyPatches(event: IpcMainInvokeEvent, disabledPatchesInfo: string, customPatchesInfo: string) {
     const { patcherPath, iniPath, source } = await resolvePluginAssets();
+
+    const disabledPatches = disabledPatchesInfo ? JSON.parse(disabledPatchesInfo) : [];
+    const customPatches = customPatchesInfo ? JSON.parse(customPatchesInfo) : [];
+
+    const originalIni = readFileSync(iniPath, "utf8");
+    let customIni = "";
+
+    for (const rawBlock of originalIni.split(/\r?\n(?=\[)/)) {
+        if (!rawBlock.trim()) continue;
+        const nameMatch = rawBlock.match(/^\[(.+?)\]/m);
+        if (!nameMatch) {
+            customIni += rawBlock + "\n\n";
+            continue;
+        }
+        if (!disabledPatches.includes(nameMatch[1])) {
+            customIni += rawBlock + "\n\n";
+        }
+    }
+
+    for (const cp of customPatches) {
+        if (cp.enabled) {
+            customIni += "\n" + cp.content + "\n";
+        }
+    }
+
+    const tempIniPath = join(require("os").tmpdir(), "custom_voice_patcher.ini");
+    writeFileSync(tempIniPath, customIni);
 
     const result = await event.sender.executeJavaScriptInIsolatedWorld(PRELOAD_WORLD_ID, [{
         code: `(() => {
@@ -231,7 +272,7 @@ export async function applyPatches(event: IpcMainInvokeEvent) {
                             })();
 
                 const patcher = requireFn(${JSON.stringify(patcherPath)});
-                return patcher.applyPatches(${JSON.stringify(iniPath)});
+                return patcher.applyPatches(${JSON.stringify(tempIniPath)});
             } catch (error) {
                 return {
                     error: error instanceof Error
@@ -246,8 +287,11 @@ export async function applyPatches(event: IpcMainInvokeEvent) {
         throw new Error("VoicePatcher isolated-world execution returned no result");
     }
 
+    const inspectData = inspectVoicePatcherIni(tempIniPath);
+    try { unlinkSync(tempIniPath); } catch {}
+
     return {
-        ...inspectVoicePatcherIni(iniPath),
+        ...inspectData,
         assetSource: source,
         ...result,
     };
