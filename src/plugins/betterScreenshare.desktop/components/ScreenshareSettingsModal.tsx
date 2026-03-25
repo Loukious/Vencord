@@ -19,13 +19,13 @@
 import { Button } from "@components/Button";
 import { Card } from "@components/Card";
 import { Flex } from "@components/Flex";
+import { Heading } from "@components/Heading";
+import { Paragraph } from "@components/Paragraph";
 import { Switch } from "@components/Switch";
 import { MicrophoneSettingsModal } from "@plugins/betterMicrophone.desktop/components";
-import { PluginInfo } from "@plugins/betterScreenshare.desktop/constants";
 import { ScreenshareAudioProfile, ScreenshareAudioStore, ScreenshareProfile, ScreenshareStore } from "@plugins/betterScreenshare.desktop/stores";
 import {
     MediaEngineStore,
-    openURL,
     ProfilableStore,
     SettingsModal,
     SettingsModalCard,
@@ -39,7 +39,7 @@ import {
 import { Styles } from "@plugins/philsPluginLibrary/styles";
 import { ModalSize, openModalLazy } from "@utils/modal";
 import { SelectOption } from "@vencord/discord-types";
-import { Forms, React, Select, Slider, TextInput, useEffect, useState } from "@webpack/common";
+import { React, Select, Slider, TextInput, useEffect, useState } from "@webpack/common";
 
 const simpleResolutions: readonly (SelectOption & { value: types.Resolution; })[] = [
     {
@@ -488,7 +488,7 @@ export const ScreenshareSettingsModal = (props: ScreenshareSettingsModalProps) =
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", width: "80px", gap: "1em", alignItems: "center", justifyContent: "flex-start", paddingTop: "0.6em" }}>
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-                        <Forms.FormTitle tag="h5">Status</Forms.FormTitle>
+                        <Heading tag="h5">Status</Heading>
                         <Switch
                             checked={videoBitrateEnabled ?? false}
                             disabled={isSaving}
@@ -496,7 +496,7 @@ export const ScreenshareSettingsModal = (props: ScreenshareSettingsModalProps) =
                         />
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-                        <Forms.FormTitle tag="h5" style={{ textAlign: "center", lineHeight: "1.2" }}>Detailed Settings</Forms.FormTitle>
+                        <Heading tag="h5" style={{ textAlign: "center", lineHeight: "1.2" }}>Detailed Settings</Heading>
                         <Switch
                             checked={isDetailedBitrate}
                             disabled={!videoBitrateEnabled || isSaving}
@@ -606,7 +606,7 @@ export const ScreenshareSettingsModal = (props: ScreenshareSettingsModalProps) =
 
     const simpleToggle =
         <Flex style={{ justifyContent: "center", alignItems: "center", gap: "0.6em" }}>
-            <Forms.FormTitle style={{ margin: 0 }} tag="h5">Simple</Forms.FormTitle>
+            <Heading style={{ margin: 0 }} tag="h5">Simple</Heading>
             <Switch checked={simpleMode ?? false} disabled={isSaving} onChange={checked => setSimpleMode(checked)} />
         </Flex>;
 
