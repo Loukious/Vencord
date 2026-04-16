@@ -17,7 +17,7 @@
 */
 
 import * as types from "@plugins/philsPluginLibrary/types";
-import { waitForStore } from "webpack/common/internal";
+import { waitForStore } from "@webpack/common/internal";
 
 export let MediaEngineStore: types.MediaEngineStore;
 
