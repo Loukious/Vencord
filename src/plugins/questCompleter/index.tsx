@@ -84,12 +84,6 @@ function stopQuest(questId: string) {
 
     runningQuests.delete(questId);
     console.log("[Quest] Removed from tracking");
-
-    showNotification({
-        title: "Quest Stopped",
-        body: `Stopped ${questData.questName}`,
-        icon: `${questAssetsBaseUrl}${questId}/dark/${getQuestById(questId)?.config?.assets?.logotype}`,
-    });
 }
 
 function getQuestImageConfig(questId: string) {
@@ -270,11 +264,6 @@ export default definePlugin({
 
             console.log(`[Quest] Starting ${taskName}: ${questName} at ${progress}/${secondsNeeded}s`);
 
-            showQuestNotification(
-                "Starting",
-                `Auto-completing in ${estimatedTime}s`
-            );
-
             try {
                 while (progress < secondsNeeded && !done) {
                     const elapsed = Math.floor((Date.now() - startedAt) / 1000);
@@ -290,9 +279,6 @@ export default definePlugin({
 
                             progress = next;
                             done = !!res.body?.completed_at;
-
-                            const percent = Math.floor((progress / secondsNeeded) * 100);
-                            showQuestNotification("Progress", `${Math.floor(progress)}s / ${secondsNeeded}s (${percent}%)`);
 
                             if (done) {
                                 console.log("[Quest] Server confirmed completion.");
@@ -346,19 +332,33 @@ export default definePlugin({
                     }
                 }
                 const pid = Math.floor(Math.random() * 30000) + 1000;
+                const parentPid1 = Math.floor(Math.random() * 30000) + 1000;
+                const parentPid2 = Math.floor(Math.random() * 30000) + 1000;
+                const parentPid3 = Math.floor(Math.random() * 30000) + 1000;
 
                 const fakeGame = {
-                    cmdLine: `C:\\Program Files\\${appData.name}\\${exeName}`,
-                    exeName: exeName,
-                    exePath: `C:\\Program Files\\${appData.name}\\${exeName}`,
+                    cmdLine: "",
+                    distributor: appData.distributor ?? "steam",
+                    elevated: false,
+                    exeName: exeName.toLowerCase(),
+                    exePath: `c:/program files (x86)/steam/steamapps/common/${appData.name.toLowerCase()}/${exeName.toLowerCase()}`,
+                    executableFingerprint: undefined,
+                    fullscreenType: 1,
+                    gameMetadata: undefined,
                     hidden: false,
-                    isLauncher: false,
                     id: applicationId,
+                    isLauncher: false,
+                    lastFocused: 0,
                     name: appData.name,
+                    nativeProcessObserverId: Math.floor(Math.random() * 30000) + 1000,
+                    origGameName: appData.name,
                     pid: pid,
-                    pidPath: [pid],
+                    pidPath: [parentPid1, parentPid2, parentPid3, pid],
                     processName: appData.name,
+                    sandboxed: false,
+                    sku: appData.primary_sku_id ?? undefined,
                     start: Date.now(),
+                    windowHandle: String(Math.floor(Math.random() * 9000000) + 1000000),
                 };
 
                 runningQuest.gameInstance = fakeGame;
@@ -368,12 +368,6 @@ export default definePlugin({
                     added: [fakeGame],
                     removed: [],
                     games: [...RunningGameStore.getRunningGames(), fakeGame]
-                });
-
-                showNotification({
-                    title: `${questName} Started`,
-                    body: `Tracking ${appData.name} gameplay`,
-                    ...getQuestImageConfig(quest.id)
                 });
 
                 const getCurrentProgress = () => {
@@ -409,12 +403,6 @@ export default definePlugin({
                 const updateProgress = async () => {
                     await sendHeartbeat();
                     const progress = getCurrentProgress();
-                    const percent = Math.floor((progress / secondsNeeded) * 100);
-
-                    showQuestNotification(
-                        "Progress",
-                        `${Math.floor(progress / 60)}m/${Math.floor(secondsNeeded / 60)}m (${percent}%)`
-                    );
 
                     if (progress >= secondsNeeded) {
                         clearInterval(runningQuest.progressInterval!);
@@ -472,11 +460,6 @@ export default definePlugin({
                         body: { stream_key: encodeStreamKey(currentStream), terminal: false }
                     });
 
-                    showQuestNotification(
-                        "Progress",
-                        `${Math.floor(progress / 60)}m/${Math.floor(secondsNeeded / 60)}m`
-                    );
-
                     if (progress >= secondsNeeded) {
                         clearInterval(runningQuest.progressInterval!);
                         runningQuests.delete(quest.id);
@@ -492,10 +475,6 @@ export default definePlugin({
                 ApplicationStreamingStore.getStreamerActiveStreamMetadata = realFunc;
             };
 
-            showQuestNotification(
-                "Starting",
-                `Spoofing stream. Stream any window in VC for ${Math.ceil((secondsNeeded - secondsDone) / 60)} minutes.`
-            );
         } else if (taskName === "PLAY_ACTIVITY") {
             const channelId = ChannelStore.getSortedPrivateChannels()[0]?.id ??
                 (Object.values(GuildChannelStore.getAllGuilds()) as any[])
@@ -512,10 +491,6 @@ export default definePlugin({
 
                 try {
                     await questsHeartbeat({ questId: quest.id, streamKey, terminal: false });
-                    showQuestNotification(
-                        "Progress",
-                        `${Math.floor(progress / 60)}m/${Math.floor(secondsNeeded / 60)}m (${Math.floor(progress / secondsNeeded * 100)}%)`
-                    );
 
                     if (progress >= secondsNeeded) {
                         clearInterval(runningQuest.progressInterval!);
@@ -533,7 +508,6 @@ export default definePlugin({
                 clearInterval(runningQuest.progressInterval!);
             };
 
-            showQuestNotification("Starting", "Completing activity quest");
         }
     }
 });
