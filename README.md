@@ -3,22 +3,25 @@
 Visit https://github.com/Loukious/Installer/releases/latest
 
 ## Fork additional plugins:
+
 - FakeDeafen
     - You appear defeated to others, but can still hear them
 - QuestCompleter
-    - Auto completes Discord's quests for you
+    - Auto completes Discord's quests using a button
+    - ![](https://i.imgur.com/ufnS1OC.png)
 - WhosWatching
     - Shows who is watching your stream in the voice channel
 - BiggerFileUpload
     - Allows you to upload files up to 1GB in size (using 3rd party services)
 - BetterClips:
-    - Record everyone, save clips from any stream with additional FPS/duration options (need to enable clips experimental feature in settings)
+    - Record everyone, save clips ~~from any stream~~ with additional FPS/duration options (need to enable clips experimental feature in settings)
 - BetterMic/ScreenShare
     - Gives you more control over your microphone and screen share settings, including bitrate, resolution, and frame rate
 - CustomVcNarrator
     - Uses TikTok's text-to-speech instead of the default Discord one
-- BetterStremioActivity
-    - Changes the Stremio activity to show what you are watching instead of just "Watching Stremio" (needs this [Stremio fork](https://github.com/Loukious/stremio-shell-ng) to work)
+- ~~BetterStremioActivity~~
+    - ~~Changes the Stremio activity to show what you are watching instead of just "Watching Stremio" (needs this [Stremio fork](https://github.com/Loukious/stremio-shell-ng) to work)~~
+    - Now built-in [Stremio fork](https://github.com/Loukious/stremio-shell-ng), no longer requires a plugin
 
 # Vencord
 
@@ -31,16 +34,15 @@ The cutest Discord client mod
 
 ## Features
 
--   Easy to install
--   [100+ built in plugins](https://vencord.dev/plugins)
--   Fairly lightweight despite the many inbuilt plugins
--   Excellent Browser Support: Run Vencord in your Browser via extension or UserScript
--   Works on any Discord branch: Stable, Canary or PTB all work
--   Custom CSS and Themes: Inbuilt css editor with support to import any css files (including BetterDiscord themes)
--   Privacy friendly: blocks Discord analytics & crash reporting out of the box and has no telemetry
--   Maintained very actively, broken plugins are usually fixed within 12 hours
--   Settings sync: Keep your plugins and their settings synchronised between devices / apps (optional)
-
+- Easy to install
+- [100+ built in plugins](https://vencord.dev/plugins)
+- Fairly lightweight despite the many inbuilt plugins
+- Excellent Browser Support: Run Vencord in your Browser via extension or UserScript
+- Works on any Discord branch: Stable, Canary or PTB all work
+- Custom CSS and Themes: Inbuilt css editor with support to import any css files (including BetterDiscord themes)
+- Privacy friendly: blocks Discord analytics & crash reporting out of the box and has no telemetry
+- Maintained very actively, broken plugins are usually fixed within 12 hours
+- Settings sync: Keep your plugins and their settings synchronised between devices / apps (optional)
 
 ## Join our Support/Community Server
 
@@ -51,8 +53,7 @@ https://discord.gg/D9uwnFnqmd
 |     **Thanks a lot to all Vencord [sponsors](https://github.com/sponsors/Vendicated)!!**     |
 | :------------------------------------------------------------------------------------------: |
 |   [![](https://meow.vendicated.dev/sponsors.png)](https://github.com/sponsors/Vendicated)    |
-| *generated using [github-sponsor-graph](https://github.com/Vendicated/github-sponsor-graph)* |
-
+| _generated using [github-sponsor-graph](https://github.com/Vendicated/github-sponsor-graph)_ |
 
 ## Star History
 
