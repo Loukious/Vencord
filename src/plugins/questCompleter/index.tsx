@@ -20,7 +20,7 @@ import { showNotification } from "@api/Notifications";
 import { Devs } from "@utils/constants";
 import definePlugin from "@utils/types";
 import { findByCode, findByProps, findStoreLazy } from "@webpack";
-import { ChannelStore, FluxDispatcher, GuildChannelStore, RestAPI, showToast, Text } from "@webpack/common";
+import { ChannelStore, FluxDispatcher, GuildChannelStore, RestAPI, showToast, Text, Toasts } from "@webpack/common";
 
 const FLUX_EVENTS = {
     RUNNING_GAMES: "RUNNING_GAMES_CHANGE",
@@ -263,6 +263,7 @@ export default definePlugin({
             let done = false;
 
             console.log(`[Quest] Starting ${taskName}: ${questName} at ${progress}/${secondsNeeded}s`);
+            showToast(`Starting quest: ${questName}`, Toasts.Type.SUCCESS);
 
             try {
                 while (progress < secondsNeeded && !done) {
