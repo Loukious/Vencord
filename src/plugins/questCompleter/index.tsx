@@ -311,6 +311,7 @@ export default definePlugin({
 
             } catch (error) {
                 console.error("[Quest] Error:", error);
+                showToast(error instanceof Error ? error.message : "An unknown error occurred", Toasts.Type.FAILURE);
                 runningQuests.delete(quest.id);
                 clearInterval(runningQuest.interval);
             }
@@ -430,11 +431,11 @@ export default definePlugin({
             } catch (error) {
                 console.error("Game setup error:", error);
                 runningQuests.delete(quest.id);
-                showToast("Failed to setup game tracking");
+                showToast("Failed to setup game tracking", Toasts.Type.FAILURE);
             }
         } else if (taskName === "STREAM_ON_DESKTOP") {
             if (!isApp) {
-                showToast("Desktop app required for streaming quests!");
+                showToast("Desktop app required for streaming quests!", Toasts.Type.FAILURE);
                 runningQuests.delete(quest.id);
                 return;
             }
@@ -468,6 +469,8 @@ export default definePlugin({
                     }
                 } catch (e) {
                     console.error("Stream progress error:", e);
+                    showToast("Failed to update stream progress", Toasts.Type.FAILURE);
+                    runningQuests.delete(quest.id);
                 }
             }, 30000);
 
@@ -501,6 +504,7 @@ export default definePlugin({
                     }
                 } catch (error) {
                     console.error("Activity progress error:", error);
+                    showToast("Failed to update activity progress", Toasts.Type.FAILURE);
                     runningQuests.delete(quest.id);
                 }
             }, 20000);
