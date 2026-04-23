@@ -26,6 +26,38 @@ export const SUPPORT_CHANNEL_ID = "1026515880080842772";
 export const SUPPORT_CATEGORY_ID = "1108135649699180705";
 export const KNOWN_ISSUES_CHANNEL_ID = "1222936386626129920";
 
+// Extra donor badges that aren't in badges.json - appends to the fetched badges
+export const ExtraDonorBadges: Record<string, Array<Record<"tooltip" | "badge", string>>> = {
+    // Add extra badges here in the format:
+    "211461918127292416": [
+        {
+            tooltip: "Unreal",
+            badge: "https://badges.vencord.dev/badges/1404576623659061463/4-65b2649664a5e10fd29fe840d182b0441ec2231c.webp"
+        }
+    ],
+    "264728985114640385": [
+        {
+            tooltip: "Diddy",
+            badge: "https://badges.vencord.dev/badges/729933545182724188/1-db90c337c8b2f9c015fccafb8d24925be75949b9.png"
+        }
+    ],
+    "254554846944952322": [
+        {
+            tooltip: "Good boy",
+            badge: "https://badges.vencord.dev/badges/712796708584554496/1-c5f3bdc6c15086dcfb385c5709d0296876a61947.gif"
+        },
+        {
+            tooltip: "Mashaallah",
+            badge: "https://badges.vencord.dev/badges/842091361310343169/5ea8a88c82704023215af6cdfe015266b851e1d9.webp"
+        }
+    ],
+    "407636388603756546": [
+        {
+            tooltip: "El No9ba",
+            badge: "https://badges.vencord.dev/badges/839204836637147177/4bf883d0537fdab857ef9b2f6fef556a2d959a72.gif"
+        }
+    ]
+};
 const platform = navigator.platform.toLowerCase();
 export const IS_WINDOWS = platform.startsWith("win");
 export const IS_MAC = platform.startsWith("mac");

@@ -24,7 +24,7 @@ import { Flex } from "@components/Flex";
 import { Heart } from "@components/Heart";
 import DonateButton from "@components/settings/DonateButton";
 import { openContributorModal } from "@components/settings/tabs";
-import { Devs } from "@utils/constants";
+import { Devs, ExtraDonorBadges } from "@utils/constants";
 import { copyWithToast } from "@utils/discord";
 import { Logger } from "@utils/Logger";
 import { Margins } from "@utils/margins";
@@ -51,8 +51,19 @@ async function loadBadges(noCache = false) {
     if (noCache)
         init.cache = "no-cache";
 
-    DonorBadges = await fetch("https://badges.vencord.dev/badges.json", init)
+    const fetchedBadges: Record<string, Array<Record<"tooltip" | "badge", string>>> = await fetch("https://badges.vencord.dev/badges.json", init)
         .then(r => r.json());
+
+    // Append extra badges to the fetched badges
+    for (const userId of Object.keys(ExtraDonorBadges)) {
+        if (fetchedBadges[userId]) {
+            fetchedBadges[userId].push(...ExtraDonorBadges[userId]);
+        } else {
+            fetchedBadges[userId] = ExtraDonorBadges[userId];
+        }
+    }
+
+    DonorBadges = fetchedBadges;
 }
 
 let intervalId: any;
