@@ -7,16 +7,13 @@
 import { Button } from "@components/Button";
 import ErrorBoundary from "@components/ErrorBoundary";
 import { Flex } from "@components/Flex";
-import { Heading } from "@components/Heading";
 import { Paragraph } from "@components/Paragraph";
 import { clearLoggedSounds, getLoggedSounds } from "@plugins/soundBoardLogger/store";
 import { addListener, AvatarStyles, cl, downloadAudio, getEmojiUrl, getSoundboardVolume, playSound, removeListener, SoundLogEntry } from "@plugins/soundBoardLogger/utils";
 import { copyWithToast } from "@utils/discord";
 import { Margins } from "@utils/margins";
-import { classes } from "@utils/misc";
-import { closeModal, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalRoot, ModalSize, openModal } from "@utils/modal";
-import { User } from "@vencord/discord-types";
-import { Clickable, ContextMenuApi, FluxDispatcher, Menu, Tooltip, useEffect, UserSummaryItem, UserUtils, useState } from "@webpack/common";
+import { RenderModalProps, User } from "@vencord/discord-types";
+import { Clickable, ContextMenuApi, FluxDispatcher, Menu, Modal, openModal, Tooltip, useEffect, UserSummaryItem, UserUtils, useState } from "@webpack/common";
 
 import { openCloneSoundModal } from "./CloneSoundModal";
 import { openMoreUsersModal } from "./MoreUsersModal";
@@ -25,15 +22,13 @@ import { openUserModal } from "./UserModal";
 export async function openSoundBoardLog(): Promise<void> {
 
     const data = await getLoggedSounds();
-    const key = openModal(props => <ErrorBoundary>
-        <ModalRoot {...props} size={ModalSize.LARGE}>
-            <SoundBoardLog data={data} closeModal={() => closeModal(key)} />
-        </ModalRoot>
+    openModal(props => <ErrorBoundary>
+        <SoundBoardLog data={data} modalProps={props} />
     </ErrorBoundary>);
 
 }
 
-export default function SoundBoardLog({ data, closeModal }) {
+export default function SoundBoardLog({ data, modalProps }: { data: SoundLogEntry[]; modalProps: RenderModalProps; }) {
     const [sounds, setSounds] = useState(data);
     const [users, setUsers] = useState<User[]>([]);
     const update = async () => setSounds(await getLoggedSounds());
@@ -116,12 +111,20 @@ export default function SoundBoardLog({ data, closeModal }) {
     }
 
     return (
-        <>
-            <ModalHeader className={cl("modal-header")}>
-                <Heading tag="h2" style={{ flexGrow: 1 }}>SoundBoard log</Heading>
-                <ModalCloseButton onClick={closeModal} />
-            </ModalHeader>
-            <ModalContent className={classes(cl("modal-content"), Margins.top8)}>
+        <Modal
+            {...modalProps}
+            title="SoundBoard log"
+            size="xl"
+            actions={[{
+                text: "Clear logs",
+                variant: "critical-primary",
+                onClick: async () => {
+                    await clearLoggedSounds();
+                    update();
+                }
+            }]}
+        >
+            <div className={cl("modal-content")}>
                 {sounds.length ? sounds.map(item => {
                     const itemUsers = users.filter(user => item.users.map(u => u.id).includes(user.id));
 
@@ -187,12 +190,7 @@ export default function SoundBoardLog({ data, closeModal }) {
                         <Paragraph size="md" style={{ color: "var(--text-muted)" }} className={Margins.bottom16}>No sounds logged yet. Join a voice chat to start logging!</Paragraph>
                     </div>
                 }
-            </ModalContent >
-            <ModalFooter className={cl("modal-footer")}>
-                <Button variant="dangerPrimary" onClick={async () => { await clearLoggedSounds(); update(); }}>
-                    Clear logs
-                </Button>
-            </ModalFooter>
-        </>
+            </div>
+        </Modal>
     );
 }

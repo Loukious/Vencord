@@ -12,28 +12,28 @@ import { AvatarStyles, cl, downloadAudio, getEmojiUrl, playSound, SoundLogEntry,
 import { copyWithToast, openUserProfile } from "@utils/discord";
 import { Margins } from "@utils/margins";
 import { classes } from "@utils/misc";
-import { closeModal, ModalContent, ModalRoot, openModal } from "@utils/modal";
-import { Clickable, Timestamp, UserSummaryItem } from "@webpack/common";
+import { RenderModalProps } from "@vencord/discord-types";
+import { Clickable, Modal, openModal, Timestamp, UserSummaryItem } from "@webpack/common";
 import moment from "moment";
 
 import { DownloadIcon, IconWithTooltip, PlayIcon } from "./Icons";
 
 export function openUserModal(item, user, sounds) {
-    const key = openModal(props =>
-        <ModalRoot {...props}>
-            <UserModal item={item} user={user} sounds={sounds} closeModal={() => closeModal(key)} />
-        </ModalRoot>
-    );
+    openModal(props => <UserModal item={item} user={user} sounds={sounds} modalProps={props} />);
 }
 
-export default function UserModal({ item, user, sounds, closeModal }: { item: SoundLogEntry, user: User, sounds: SoundLogEntry[], closeModal: Function; }) {
+export default function UserModal({ item, user, sounds, modalProps }: { item: SoundLogEntry, user: User, sounds: SoundLogEntry[], modalProps: RenderModalProps; }) {
     const currentUser = item.users.find(({ id }) => id === user.id) ?? { id: "", plays: [0] };
     const soundsDoneByCurrentUser = sounds.filter(sound => sound.users.some(itemUser => itemUser.id === user.id) && sound.soundId !== item.soundId);
 
     return (
-        <ModalContent className={cl("user")}>
+        <Modal
+            {...modalProps}
+            title={user.username}
+        >
+            <div className={cl("user")}>
             <Clickable onClick={() => {
-                closeModal();
+                modalProps.onClose();
                 openUserProfile(user.id);
             }}>
                 <div className={cl("user-header")}>
@@ -82,7 +82,7 @@ export default function UserModal({ item, user, sounds, closeModal }: { item: So
                         <Clickable
                             className={AvatarStyles.clickableAvatar}
                             onClick={() => {
-                                closeModal();
+                                modalProps.onClose();
                                 openUserModal(sounds.find(sound => sound.soundId === soundId), user, sounds);
                             }}
                         >
@@ -101,6 +101,7 @@ export default function UserModal({ item, user, sounds, closeModal }: { item: So
                     <IconWithTooltip text="Play Sound" icon={<PlayIcon />} onClick={() => playSound(item.soundId)} />
                 </div>
             </Flex>
-        </ModalContent>
+            </div>
+        </Modal>
     );
 }

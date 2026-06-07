@@ -17,15 +17,15 @@
 */
 
 import { BaseText } from "@components/BaseText";
-import { Button } from "@components/Button";
 import { Flex } from "@components/Flex";
 import { ContributorAuthorSummary } from "@plugins/philsPluginLibrary/components/ContributorAuthorSummary";
 import { Author, Contributor } from "@plugins/philsPluginLibrary/types";
-import { ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalRoot } from "@utils/modal";
+import { ModalProps } from "@vencord/discord-types";
+import { Modal } from "@webpack/common";
 import React, { JSX } from "react";
 
 
-export interface SettingsModalProps extends React.ComponentProps<typeof ModalRoot> {
+export interface SettingsModalProps extends Omit<ModalProps, "title" | "actions" | "actionBarInput"> {
     title?: string;
     onClose: () => void;
     onDone?: () => void;
@@ -35,43 +35,57 @@ export interface SettingsModalProps extends React.ComponentProps<typeof ModalRoo
     contributors?: Contributor[];
 }
 
+function normalizeModalSize(size: SettingsModalProps["size"]) {
+    switch (size) {
+        case "small":
+            return "sm";
+        case "medium":
+        case "dynamic":
+            return "md";
+        case "large":
+            return "lg";
+        default:
+            return size;
+    }
+}
+
 export const SettingsModal = (props: SettingsModalProps) => {
-    const doneButton =
-        <Button
-            size="small"
-            variant="primary"
-            onClick={props.onDone}
-        >
-            {props.closeButtonName ?? "Done"}
-        </Button>;
+    const {
+        author,
+        children,
+        closeButtonName,
+        contributors,
+        footerContent,
+        onClose,
+        onDone,
+        size,
+        title,
+        ...modalProps
+    } = props;
 
     return (
-        <ModalRoot {...props}>
-            <ModalHeader separator={false}>
-                {props.title && <BaseText size="lg" weight="semibold" style={{ flexGrow: 1 }}>{props.title}</BaseText>}
-                <div style={{ marginLeft: "auto" }}>
-                    <ModalCloseButton onClick={props.onClose} />
-                </div>
-            </ModalHeader>
-            <ModalContent style={{ marginBottom: "1em", display: "flex", flexDirection: "column", gap: "1em" }}>
-                {props.children}
-            </ModalContent>
-            <ModalFooter>
-                <Flex style={{ width: "100%" }}>
-                    <div style={{ flex: 1, display: "flex" }}>
-                        {(props.author || props.contributors && props.contributors.length > 0) &&
-
-                            <Flex style={{ justifyContent: "flex-start", alignItems: "center", flex: 1 }}>
-                                <ContributorAuthorSummary
-                                    author={props.author}
-                                    contributors={props.contributors} />
-                            </Flex>
-                        }
-                        {props.footerContent}
-                    </div>
-                    <div style={{ marginLeft: "auto" }}>{doneButton}</div>
+        <Modal
+            {...modalProps}
+            onClose={onClose}
+            size={normalizeModalSize(size)}
+            title={title && <BaseText size="lg" weight="semibold">{title}</BaseText>}
+            actionBarInput={
+                <Flex style={{ width: "100%", justifyContent: "flex-start", alignItems: "center", gap: "1em" }}>
+                    {(author || contributors && contributors.length > 0) && (
+                        <ContributorAuthorSummary author={author} contributors={contributors} />
+                    )}
+                    {footerContent}
                 </Flex>
-            </ModalFooter>
-        </ModalRoot >
+            }
+            actions={[{
+                text: closeButtonName ?? "Done",
+                variant: "primary",
+                onClick: onDone ?? onClose
+            }]}
+        >
+            <div style={{ marginBottom: "1em", display: "flex", flexDirection: "column", gap: "1em" }}>
+                {children}
+            </div>
+        </Modal>
     );
 };

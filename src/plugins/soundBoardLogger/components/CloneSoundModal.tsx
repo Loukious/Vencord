@@ -5,26 +5,20 @@
  */
 
 import { BaseText } from "@components/BaseText";
-import { Button } from "@components/Button";
 import { Flex } from "@components/Flex";
-import { Heading, HeadingTertiary } from "@components/Heading";
+import { HeadingTertiary } from "@components/Heading";
 import { Paragraph } from "@components/Paragraph";
 import { cl, getEmojiUrl, SoundEvent } from "@plugins/soundBoardLogger/utils";
 import { Margins } from "@utils/margins";
 import { classes } from "@utils/misc";
-import { closeModal, ModalCloseButton, ModalContent, ModalHeader, ModalRoot, openModal } from "@utils/modal";
 import { LazyComponent } from "@utils/react";
-import { Guild } from "@vencord/discord-types";
+import { Guild, RenderModalProps } from "@vencord/discord-types";
 import { find, findByPropsLazy } from "@webpack";
-import { Clickable, GuildStore, PermissionsBits, PermissionStore, Popout, SearchableSelect, showToast, TextInput, Toasts, useMemo, useRef, UserStore, useState } from "@webpack/common";
+import { Clickable, GuildStore, Modal, openModal, PermissionsBits, PermissionStore, Popout, SearchableSelect, showToast, TextInput, Toasts, useMemo, useRef, UserStore, useState } from "@webpack/common";
 import { HtmlHTMLAttributes } from "react";
 
 export function openCloneSoundModal(item) {
-    const key = openModal(props =>
-        <ModalRoot {...props}>
-            <CloneSoundModal item={item} closeModal={() => closeModal(key)} />
-        </ModalRoot>
-    );
+    openModal(props => <CloneSoundModal item={item} modalProps={props} />);
 }
 
 // Thanks https://github.com/Vendicated/Vencord/blob/ea11f2244fde469ce308f8a4e7224430be62f8f1/src/plugins/emoteCloner/index.tsx#L173-L177
@@ -51,7 +45,7 @@ const EmojiPicker = LazyComponent(() => find(e => e.default?.type?.render?.toStr
 
 const sounds = findByPropsLazy("uploadSound", "updateSound");
 
-export function CloneSoundModal({ item, closeModal }: { item: SoundEvent, closeModal: () => void; }) {
+export function CloneSoundModal({ item, modalProps }: { item: SoundEvent, modalProps: RenderModalProps; }) {
     const ownedGuilds = useMemo(() => {
         return Object.values(GuildStore.getGuilds()).filter(guild =>
             guild.ownerId === UserStore.getCurrentUser().id ||
@@ -79,14 +73,56 @@ export function CloneSoundModal({ item, closeModal }: { item: SoundEvent, closeM
 
     const popoutRef = useRef<HTMLDivElement>(null);
 
-    return <>
-        <ModalHeader>
-            <Flex style={{ width: "100%", justifyContent: "center" }}>
-                <Heading tag="h2" style={{ flexGrow: 1 }}>Clone Sound</Heading>
-                <ModalCloseButton onClick={closeModal} />
-            </Flex>
-        </ModalHeader>
-        <ModalContent>
+    function addToServer() {
+        setLoadingButton(true);
+        fetch(`https://cdn.discordapp.com/soundboard-sounds/${item.soundId}`).then(function (response) {
+            if (!response.body) {
+                setLoadingButton(false);
+                showToast("Error fetching the sound", Toasts.Type.FAILURE);
+                return;
+            }
+            response.body.getReader().read().then(function (result) {
+                if (!result.value) {
+                    setLoadingButton(false);
+                    showToast("Error reading the sound content", Toasts.Type.FAILURE);
+                    return;
+                }
+                return btoa(String.fromCharCode(...result.value));
+            }).then(function (b64) {
+
+                sounds.uploadSound({
+                    guildId: selectedGuild?.id,
+                    name: soundName,
+                    sound: `data:audio/ogg;base64,${b64}`,
+                    ...(soundEmoji.id ? { emojiId: soundEmoji.id } : { emojiName: soundEmoji.surrogates }),
+                    volume: 1
+                }).then(() => {
+                    showToast(`Sound added to ${selectedGuild?.name}`, Toasts.Type.SUCCESS);
+                    modalProps.onClose();
+                }).catch(() => {
+                    setLoadingButton(false);
+                    showToast("Error while adding sound", Toasts.Type.FAILURE);
+                });
+
+            });
+        }).catch(() => {
+            setLoadingButton(false);
+            showToast("Error fetching the sound", Toasts.Type.FAILURE);
+        });
+    }
+
+    return <Modal
+        {...modalProps}
+        title="Clone Sound"
+        actions={[{
+            text: "Add to Server",
+            variant: "primary",
+            onClick: addToServer,
+            disabled: (!(selectedGuild && soundName && isEmojiValid)) || loadingButton,
+            loading: loadingButton
+        }]}
+    >
+        <div>
             <HeadingTertiary className={Margins.top16}>Cloning Sound</HeadingTertiary>
             <CustomInput style={{ display: "flex", flexDirection: "row", gap: "10px", alignItems: "center" }} className={Margins.bottom16}>
                 <img src={getEmojiUrl(item.emoji)} width="24" height="24" />
@@ -154,48 +190,6 @@ export function CloneSoundModal({ item, closeModal }: { item: SoundEvent, closeM
                 </div>
             </Flex>
             {!isEmojiValid && <Paragraph style={{ color: "var(--text-danger)" }} className={Margins.bottom16}>You can't use that emoji in that server</Paragraph>}
-            <Button onClick={() => {
-                setLoadingButton(true);
-                fetch(`https://cdn.discordapp.com/soundboard-sounds/${item.soundId}`).then(function (response) {
-                    if (!response.body) {
-                        setLoadingButton(false);
-                        showToast("Error fetching the sound", Toasts.Type.FAILURE);
-                        return;
-                    }
-                    response.body.getReader().read().then(function (result) {
-                        if (!result.value) {
-                            setLoadingButton(false);
-                            showToast("Error reading the sound content", Toasts.Type.FAILURE);
-                            return;
-                        }
-                        return btoa(String.fromCharCode(...result.value));
-                    }).then(function (b64) {
-
-                        sounds.uploadSound({
-                            guildId: selectedGuild?.id,
-                            name: soundName,
-                            sound: `data:audio/ogg;base64,${b64}`,
-                            ...(soundEmoji.id ? { emojiId: soundEmoji.id } : { emojiName: soundEmoji.surrogates }),
-                            volume: 1
-                        }).then(() => {
-                            showToast(`Sound added to ${selectedGuild?.name}`, Toasts.Type.SUCCESS);
-                            closeModal();
-                        }).catch(() => {
-                            setLoadingButton(false);
-                            showToast("Error while adding sound", Toasts.Type.FAILURE);
-                        });
-
-                    });
-                }).catch(e => {
-                    setLoadingButton(false);
-                    showToast("Error fetching the sound", Toasts.Type.FAILURE);
-                    return;
-                });
-            }}
-                disabled={(!(selectedGuild && soundName && isEmojiValid)) || loadingButton}
-                size="medium"
-                style={{ width: "100%" }}
-                className={Margins.bottom16}>Add to Server</Button>
-        </ModalContent>
-    </>;
+        </div>
+    </Modal>;
 }
