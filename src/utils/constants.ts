@@ -24,7 +24,7 @@ export const CONTRIB_ROLE_ID = "1026534353167208489";
 export const REGULAR_ROLE_ID = "1026504932959977532";
 export const SUPPORT_CHANNEL_ID = "1026515880080842772";
 export const SUPPORT_CATEGORY_ID = "1108135649699180705";
-export const KNOWN_ISSUES_CHANNEL_ID = "1222936386626129920";
+export const KNOWN_ISSUES_CHANNEL_ID = "1257025907625951423";
 
 // Extra donor badges that aren't in badges.json - appends to the fetched badges
 export const ExtraDonorBadges: Record<string, Array<Record<"tooltip" | "badge", string>>> = {
@@ -713,6 +713,10 @@ export const Devs = /* #__PURE__*/ Object.freeze({
     milas: {
         name: "milas",
         id: 264728985114640385n,
+    },
+    nightmaresan: {
+        name: "NightmareSan",
+        id: 304239816466235392n
     },
 } satisfies Record<string, Dev>);
 
