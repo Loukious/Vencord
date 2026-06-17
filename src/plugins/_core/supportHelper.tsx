@@ -47,7 +47,7 @@ const CodeBlockRe = /```js\n(.+?)```/s;
 
 const AdditionalAllowedChannelIds = [
     "1024286218801926184", // Vencord > #bot-commands
-    "800145732879122472", // JFF > #bot-spam
+    "800145732879122472", // JFF > #bot-commands
 ];
 
 const TrustedRolesIds = [
