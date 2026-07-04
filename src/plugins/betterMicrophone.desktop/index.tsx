@@ -86,7 +86,7 @@ export default definePlugin({
     dependencies: ["PhilsPluginLibrary", "VoicePatcher"],
     patches: [
         {
-            find: ".DISPLAY_NAME_STYLES_COACHMARK)",
+            find: "#{intl::USER_PROFILE_ACCOUNT_POPOUT_BUTTON_A11Y_LABEL}",
             replacement: {
                 match: /speaking:.{0,100}style:.,children:\[/,
                 replace: "$&$self.micSettingsButton(arguments[0]),"
