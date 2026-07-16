@@ -45,16 +45,6 @@ export const ExtraDonorBadges: Record<string, Array<Record<"tooltip" | "badge", 
         {
             tooltip: "Good boy",
             badge: "https://badges.vencord.dev/badges/712796708584554496/1-c5f3bdc6c15086dcfb385c5709d0296876a61947.gif"
-        },
-        {
-            tooltip: "Mashaallah",
-            badge: "https://badges.vencord.dev/badges/842091361310343169/5ea8a88c82704023215af6cdfe015266b851e1d9.webp"
-        }
-    ],
-    "407636388603756546": [
-        {
-            tooltip: "El No9ba",
-            badge: "https://badges.vencord.dev/badges/839204836637147177/4bf883d0537fdab857ef9b2f6fef556a2d959a72.gif"
         }
     ]
 };
