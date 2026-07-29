@@ -206,7 +206,7 @@ function getQuestProgress(quest: any, taskName: QuestTaskName) {
 }
 
 function getTaskApplication(quest: any, taskName: QuestTaskName) {
-    return quest.config.taskConfigV2.tasks[taskName]?.applications?.[0] ?? quest.config.application;
+    return quest.config.taskConfigV2.tasks[taskName]?.applications?.[0] ?? null;
 }
 
 function sendQuestHeartbeat(options: QuestHeartbeatOptions) {
@@ -681,9 +681,30 @@ export default definePlugin({
         }
 
         const taskApplication = getTaskApplication(quest, taskName);
-        const applicationId = taskApplication.id;
-        const applicationName = taskApplication.name ?? quest.config.application.name;
-        const { questName } = quest.config.messages;
+        const requiresApplication = HEARTBEAT_QUEST_TASKS.has(taskName);
+        if (requiresApplication && !taskApplication?.id) {
+            console.error("[Quest] Application data missing:", {
+                questId: quest.id,
+                taskName,
+                task: quest.config.taskConfigV2.tasks[taskName]
+            });
+
+            showToast("This quest does not contain application data!", Toasts.Type.FAILURE);
+            return;
+        }
+
+        const applicationId = taskApplication?.id ?? "";
+        const applicationName =
+            taskApplication?.name
+            ?? quest.config.messages.gameTitle
+            ?? quest.config.messages.questName
+            ?? "Discord Quest";
+
+        const questName =
+            quest.config.messages.questName
+            ?? quest.config.messages.gameTitle
+            ?? "Discord Quest";
+
         const secondsNeeded = quest.config.taskConfigV2.tasks[taskName].target;
 
         const runningQuest: RunningQuest = {
