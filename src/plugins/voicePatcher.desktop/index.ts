@@ -21,8 +21,41 @@ export const settings = definePluginSettings({
     }
 });
 
+function patchStatusIcon(status: string, reverting = false) {
+    if (status === "ok") return "✓";
+    if (reverting && status === "already_reverted") return "~";
+    if (!reverting && status === "already_patched") return "~";
+    if (/(not[_-]?resolved|not[_-]?found|missing|unresolved|invalid|stale)/i.test(status)) return "?";
+    return "✗";
+}
+
+function logPatchRows(result: any, reverting = false) {
+    for (const p of result?.patches || []) {
+        console.log(
+            `[VoicePatcher] ${patchStatusIcon(p.status, reverting)} ${p.name}: ${p.status}` +
+            `${p.tier ? ` [${p.tier}]` : ""}` +
+            `${p.rva ? ` @ RVA ${p.rva}` : ""}`
+        );
+    }
+}
+
+function logRevertSummary(result: any, label: string) {
+    if (!result) return;
+
+    console.log(`[VoicePatcher] ${label}`);
+    logPatchRows(result, true);
+    console.log(
+        `[VoicePatcher] Revert done — ok:${result.ok ?? 0} failed:${result.failed ?? 0} ` +
+        `skipped:${result.skipped ?? 0} tracked:${result.tracked_after ?? 0}`
+    );
+}
+
 export function applyAndLogPatches(disabledPatches: string, customPatches: string) {
     return Native.applyPatches(disabledPatches, customPatches).then(result => {
+        if (result.revert_before_apply) {
+            logRevertSummary(result.revert_before_apply, "Reverting previously tracked patches before apply");
+        }
+
         if (result.error) {
             console.error("[VoicePatcher] Error:", result.error);
             return result;
@@ -39,19 +72,26 @@ export function applyAndLogPatches(disabledPatches: string, customPatches: strin
         console.log(`[VoicePatcher] Assets: ${result.assetSource}`);
         console.log(`[VoicePatcher] Loaded ${result.patches_in_ini} patch definitions from INI`);
 
-        for (const p of result.patches || []) {
-            const icon = p.status === "ok" ? "✓"
-                : p.status === "already_patched" ? "~"
-                    : /(not[_-]?resolved|not[_-]?found|missing|unresolved|invalid)/i.test(p.status) ? "?"
-                        : "✗";
-            console.log(
-                `[VoicePatcher] ${icon} ${p.name}: ${p.status}` +
-                `${p.tier ? ` [${p.tier}]` : ""}` +
-                `${p.rva ? ` @ RVA ${p.rva}` : ""}`
-            );
+        logPatchRows(result);
+
+        console.log(
+            `[VoicePatcher] Done — ok:${result.ok} failed:${result.failed} skipped:${result.skipped}` +
+            `${typeof result.tracked === "number" ? ` tracked:${result.tracked}` : ""}`
+        );
+        return result;
+    });
+}
+
+export function revertAndLogPatches() {
+    return Native.revertPatches().then(result => {
+        if (result.error) {
+            console.error("[VoicePatcher] Revert error:", result.error);
+            return result;
         }
 
-        console.log(`[VoicePatcher] Done — ok:${result.ok} failed:${result.failed} skipped:${result.skipped}`);
+        console.log(`[VoicePatcher] Module: ${result.module_base} (${result.module_size})`);
+        console.log(`[VoicePatcher] Assets: ${result.assetSource}`);
+        logRevertSummary(result, "Reverting all tracked patches");
         return result;
     });
 }
@@ -78,5 +118,10 @@ export default definePlugin({
         } catch (e) {
             console.error("[VoicePatcher] Failed:", e);
         }
+    },
+    stop() {
+        revertAndLogPatches().catch(e => {
+            console.error("[VoicePatcher] Failed to revert patches on stop:", e);
+        });
     }
 });
