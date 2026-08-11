@@ -9,6 +9,7 @@ import { downloadToFile, fetchJson } from "@main/utils/http";
 import { VENCORD_USER_AGENT } from "@shared/vencordUserAgent";
 import { IpcMainInvokeEvent } from "electron";
 import { existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from "fs";
+import { tmpdir } from "os";
 import { join, resolve } from "path";
 
 const PRELOAD_WORLD_ID = 999;
@@ -208,6 +209,28 @@ function inspectVoicePatcherIni(iniPath: string) {
     };
 }
 
+function isolatedRequireBootstrap(patcherPath: string) {
+    return `
+        const requireFn =
+            typeof globalThis.require === "function"
+                ? globalThis.require
+                : typeof globalThis.module?.require === "function"
+                    ? globalThis.module.require.bind(globalThis.module)
+                    : (() => {
+                        const moduleBuiltin = globalThis.process?.getBuiltinModule?.("module")
+                            ?? globalThis.process?.getBuiltinModule?.("node:module");
+
+                        if (!moduleBuiltin?.createRequire) {
+                            throw new Error("No require function available in isolated world");
+                        }
+
+                        return moduleBuiltin.createRequire(${JSON.stringify(patcherPath)});
+                    })();
+
+        const patcher = requireFn(${JSON.stringify(patcherPath)});
+    `;
+}
+
 export async function getOriginalIniPatches(event: IpcMainInvokeEvent) {
     const { iniPath } = await resolvePluginAssets();
     const ini = readFileSync(iniPath, "utf8");
@@ -220,6 +243,41 @@ export async function getOriginalIniPatches(event: IpcMainInvokeEvent) {
         }
     }
     return patches;
+}
+
+export async function revertPatches(event: IpcMainInvokeEvent) {
+    const { patcherPath, source } = await resolvePluginAssets();
+
+    const result = await event.sender.executeJavaScriptInIsolatedWorld(PRELOAD_WORLD_ID, [{
+        code: `(() => {
+            try {
+                ${isolatedRequireBootstrap(patcherPath)}
+
+                if (typeof patcher.revertPatches !== "function") {
+                    return {
+                        error: "Loaded patcher.node does not support runtime reversion. Publish and load the updated DiscordVoicePatcher release first."
+                    };
+                }
+
+                return patcher.revertPatches();
+            } catch (error) {
+                return {
+                    error: error instanceof Error
+                        ? \`\${error.name}: \${error.message}\`
+                        : String(error)
+                };
+            }
+        })();`
+    }]);
+
+    if (result == null) {
+        throw new Error("VoicePatcher isolated-world execution returned no result");
+    }
+
+    return {
+        assetSource: source,
+        ...result,
+    };
 }
 
 export async function applyPatches(event: IpcMainInvokeEvent, disabledPatchesInfo: string, customPatchesInfo: string) {
@@ -249,50 +307,60 @@ export async function applyPatches(event: IpcMainInvokeEvent, disabledPatchesInf
         }
     }
 
-    const tempIniPath = join(require("os").tmpdir(), "custom_voice_patcher.ini");
+    const tempIniPath = join(
+        tmpdir(),
+        `custom_voice_patcher_${process.pid}_${Date.now()}_${Math.random().toString(16).slice(2)}.ini`
+    );
     writeFileSync(tempIniPath, customIni);
 
-    const result = await event.sender.executeJavaScriptInIsolatedWorld(PRELOAD_WORLD_ID, [{
-        code: `(() => {
-            try {
-                const requireFn =
-                    typeof globalThis.require === "function"
-                        ? globalThis.require
-                        : typeof globalThis.module?.require === "function"
-                            ? globalThis.module.require.bind(globalThis.module)
-                            : (() => {
-                                const moduleBuiltin = globalThis.process?.getBuiltinModule?.("module")
-                                    ?? globalThis.process?.getBuiltinModule?.("node:module");
+    try {
+        const result = await event.sender.executeJavaScriptInIsolatedWorld(PRELOAD_WORLD_ID, [{
+            code: `(() => {
+                try {
+                    ${isolatedRequireBootstrap(patcherPath)}
 
-                                if (!moduleBuiltin?.createRequire) {
-                                    throw new Error("No require function available in isolated world");
-                                }
+                    let revertBeforeApply = null;
+                    if (typeof patcher.revertPatches === "function") {
+                        revertBeforeApply = patcher.revertPatches();
 
-                                return moduleBuiltin.createRequire(${JSON.stringify(patcherPath)});
-                            })();
+                        if (revertBeforeApply?.error || (revertBeforeApply?.failed ?? 0) > 0) {
+                            return {
+                                error: "Could not safely revert all currently tracked VoicePatcher writes before applying the new configuration.",
+                                revert_before_apply: revertBeforeApply
+                            };
+                        }
+                    }
 
-                const patcher = requireFn(${JSON.stringify(patcherPath)});
-                return patcher.applyPatches(${JSON.stringify(tempIniPath)});
-            } catch (error) {
-                return {
-                    error: error instanceof Error
-                        ? \`\${error.name}: \${error.message}\`
-                        : String(error)
-                };
-            }
-        })();`
-    }]);
+                    if (typeof patcher.applyPatches !== "function") {
+                        throw new Error("Loaded patcher.node does not export applyPatches");
+                    }
 
-    if (result == null) {
-        throw new Error("VoicePatcher isolated-world execution returned no result");
+                    return {
+                        ...patcher.applyPatches(${JSON.stringify(tempIniPath)}),
+                        revert_before_apply: revertBeforeApply
+                    };
+                } catch (error) {
+                    return {
+                        error: error instanceof Error
+                            ? \`\${error.name}: \${error.message}\`
+                            : String(error)
+                    };
+                }
+            })();`
+        }]);
+
+        if (result == null) {
+            throw new Error("VoicePatcher isolated-world execution returned no result");
+        }
+
+        const inspectData = inspectVoicePatcherIni(tempIniPath);
+
+        return {
+            ...inspectData,
+            assetSource: source,
+            ...result,
+        };
+    } finally {
+        try { unlinkSync(tempIniPath); } catch {}
     }
-
-    const inspectData = inspectVoicePatcherIni(tempIniPath);
-    try { unlinkSync(tempIniPath); } catch {}
-
-    return {
-        ...inspectData,
-        assetSource: source,
-        ...result,
-    };
 }
