@@ -15,8 +15,8 @@ import { join, resolve } from "path";
 const PRELOAD_WORLD_ID = 999;
 const PATCHER_RELEASE_API = "https://api.github.com/repos/Loukious/DiscordVoicePatcher/releases/latest";
 const PATCHER_CACHE_DIR = join(DATA_DIR, "plugins", "VoicePatcher");
-const PATCHER_CACHE_NODE_PATH = join(PATCHER_CACHE_DIR, "patcher.node");
-const PATCHER_CACHE_INI_PATH = join(PATCHER_CACHE_DIR, "patcher.ini");
+const PATCHER_CACHE_LEGACY_NODE_PATH = join(PATCHER_CACHE_DIR, "patcher.node");
+const PATCHER_CACHE_LEGACY_INI_PATH = join(PATCHER_CACHE_DIR, "patcher.ini");
 const PATCHER_CACHE_META_PATH = join(PATCHER_CACHE_DIR, "release.json");
 
 type ResolvedAssets = {
@@ -47,6 +47,8 @@ let downloadedAssetsPromise: Promise<ResolvedAssets | null> | null = null;
 function getGitHubHeaders() {
     return {
         Accept: "application/vnd.github+json",
+        "Cache-Control": "no-cache",
+        Pragma: "no-cache",
         "User-Agent": VENCORD_USER_AGENT,
     };
 }
@@ -91,70 +93,94 @@ async function downloadAssetToPath(url: string, targetPath: string) {
     }
 }
 
-async function resolveDownloadedAssets(): Promise<ResolvedAssets | null> {
-    downloadedAssetsPromise ??= (async () => {
-        mkdirSync(PATCHER_CACHE_DIR, { recursive: true });
+function getVersionedCachePaths(patcherAssetId: number, iniAssetId: number) {
+    return {
+        patcherPath: join(PATCHER_CACHE_DIR, `patcher-${patcherAssetId}.node`),
+        iniPath: join(PATCHER_CACHE_DIR, `patcher-${iniAssetId}.ini`),
+    };
+}
 
-        const cachedAssetsAvailable = existsSync(PATCHER_CACHE_NODE_PATH) && existsSync(PATCHER_CACHE_INI_PATH);
+function resolveCachedAssets(): ResolvedAssets | null {
+    const cachedMeta = loadCachedReleaseMeta();
 
-        try {
-            const release = await fetchJson<GitHubRelease>(PATCHER_RELEASE_API, {
-                headers: getGitHubHeaders(),
-            });
-
-            const patcherAsset = pickReleaseAsset(release.assets ?? [], "patcher.node");
-            const iniAsset = pickReleaseAsset(release.assets ?? [], "patcher.ini");
-
-            if (!patcherAsset || !iniAsset) {
-                throw new Error("Latest DiscordVoicePatcher release does not contain both patcher.node and patcher.ini assets");
-            }
-
-            const cachedMeta = loadCachedReleaseMeta();
-            const shouldRefreshAssets =
-                !cachedAssetsAvailable
-                || cachedMeta?.tagName !== release.tag_name
-                || cachedMeta?.patcherAssetId !== patcherAsset.id
-                || cachedMeta?.iniAssetId !== iniAsset.id;
-
-            if (shouldRefreshAssets) {
-                await downloadAssetToPath(patcherAsset.browser_download_url, PATCHER_CACHE_NODE_PATH);
-                await downloadAssetToPath(iniAsset.browser_download_url, PATCHER_CACHE_INI_PATH);
-
-                writeCachedReleaseMeta({
-                    tagName: release.tag_name,
-                    patcherAssetId: patcherAsset.id,
-                    iniAssetId: iniAsset.id,
-                });
-            }
-
+    if (cachedMeta) {
+        const versionedPaths = getVersionedCachePaths(cachedMeta.patcherAssetId, cachedMeta.iniAssetId);
+        if (existsSync(versionedPaths.patcherPath) && existsSync(versionedPaths.iniPath)) {
             return {
-                patcherPath: PATCHER_CACHE_NODE_PATH,
-                iniPath: PATCHER_CACHE_INI_PATH,
-                source: `DiscordVoicePatcher release ${release.tag_name}`,
-            };
-        } catch {
-            if (!cachedAssetsAvailable) {
-                return null;
-            }
-
-            const cachedMeta = loadCachedReleaseMeta();
-
-            return {
-                patcherPath: PATCHER_CACHE_NODE_PATH,
-                iniPath: PATCHER_CACHE_INI_PATH,
-                source: cachedMeta?.tagName
-                    ? `cached DiscordVoicePatcher release ${cachedMeta.tagName}`
-                    : "cached DiscordVoicePatcher assets",
+                ...versionedPaths,
+                source: `cached DiscordVoicePatcher release ${cachedMeta.tagName}`,
             };
         }
-    })();
-
-    const resolvedAssets = await downloadedAssetsPromise;
-    if (!resolvedAssets) {
-        downloadedAssetsPromise = null;
     }
 
-    return resolvedAssets;
+    // Backward compatibility with caches created before release-versioned filenames.
+    if (existsSync(PATCHER_CACHE_LEGACY_NODE_PATH) && existsSync(PATCHER_CACHE_LEGACY_INI_PATH)) {
+        return {
+            patcherPath: PATCHER_CACHE_LEGACY_NODE_PATH,
+            iniPath: PATCHER_CACHE_LEGACY_INI_PATH,
+            source: cachedMeta?.tagName
+                ? `cached DiscordVoicePatcher release ${cachedMeta.tagName}`
+                : "cached DiscordVoicePatcher assets",
+        };
+    }
+
+    return null;
+}
+
+async function resolveDownloadedAssetsOnce(): Promise<ResolvedAssets | null> {
+    mkdirSync(PATCHER_CACHE_DIR, { recursive: true });
+    const cachedFallback = resolveCachedAssets();
+
+    try {
+        // Cache-bust the latest-release lookup. Native addons are also stored under
+        // release-asset-specific filenames so Node's require cache cannot retain an
+        // older patcher.node after a new release is published.
+        const release = await fetchJson<GitHubRelease>(`${PATCHER_RELEASE_API}?t=${Date.now()}`, {
+            headers: getGitHubHeaders(),
+        });
+
+        const patcherAsset = pickReleaseAsset(release.assets ?? [], "patcher.node");
+        const iniAsset = pickReleaseAsset(release.assets ?? [], "patcher.ini");
+
+        if (!patcherAsset || !iniAsset) {
+            throw new Error("Latest DiscordVoicePatcher release does not contain both patcher.node and patcher.ini assets");
+        }
+
+        const versionedPaths = getVersionedCachePaths(patcherAsset.id, iniAsset.id);
+
+        if (!existsSync(versionedPaths.patcherPath)) {
+            await downloadAssetToPath(patcherAsset.browser_download_url, versionedPaths.patcherPath);
+        }
+        if (!existsSync(versionedPaths.iniPath)) {
+            await downloadAssetToPath(iniAsset.browser_download_url, versionedPaths.iniPath);
+        }
+
+        writeCachedReleaseMeta({
+            tagName: release.tag_name,
+            patcherAssetId: patcherAsset.id,
+            iniAssetId: iniAsset.id,
+        });
+
+        return {
+            ...versionedPaths,
+            source: `DiscordVoicePatcher release ${release.tag_name}`,
+        };
+    } catch (error) {
+        console.warn("[VoicePatcher] Failed to refresh DiscordVoicePatcher release assets; using cache if available:", error);
+        return cachedFallback;
+    }
+}
+
+async function resolveDownloadedAssets(): Promise<ResolvedAssets | null> {
+    // Deduplicate concurrent callers only. Do not memoize forever: every later Apply,
+    // Revert, or settings refresh should be able to discover a newly published release.
+    downloadedAssetsPromise ??= resolveDownloadedAssetsOnce();
+
+    try {
+        return await downloadedAssetsPromise;
+    } finally {
+        downloadedAssetsPromise = null;
+    }
 }
 
 function resolveLocalPluginAssets(): ResolvedAssets | null {
