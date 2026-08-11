@@ -12,7 +12,7 @@ import { Heading } from "@components/Heading";
 import { Margins } from "@components/margins";
 import { Paragraph } from "@components/Paragraph";
 import { Switch } from "@components/Switch";
-import { applyAndLogPatches, Native, settings } from "@plugins/voicePatcher.desktop/index";
+import { applyAndLogPatches, Native, revertAndLogPatches, settings } from "@plugins/voicePatcher.desktop/index";
 import { React, showToast, TextArea, TextInput, Toasts } from "@webpack/common";
 
 export default function VoicePatcherSettings() {
@@ -157,28 +157,50 @@ export default function VoicePatcherSettings() {
             </Card>
 
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "12px" }}>
-                <Button
-                    onClick={() => {
-                        applyAndLogPatches(
-                            settings.store.disabledPatches || "[]",
-                            settings.store.customPatches || "[]"
-                        ).then(result => {
-                            if (result.error) {
-                                showToast("Failed: " + result.error, Toasts.Type.FAILURE);
-                            } else {
-                                showToast("Patches applied! New memory hooks dynamically active.", Toasts.Type.SUCCESS);
-                            }
-                        }).catch(e => {
-                            showToast("Exception: " + String(e), Toasts.Type.FAILURE);
-                        });
-                    }}
-                >
-                    Apply Patches Now
-                </Button>
+                <Flex style={{ gap: "12px", flexWrap: "wrap", justifyContent: "center" }}>
+                    <Button
+                        onClick={() => {
+                            applyAndLogPatches(
+                                settings.store.disabledPatches || "[]",
+                                settings.store.customPatches || "[]"
+                            ).then(result => {
+                                if (result.error) {
+                                    showToast("Failed: " + result.error, Toasts.Type.FAILURE);
+                                } else {
+                                    showToast("Patch state reconciled successfully.", Toasts.Type.SUCCESS);
+                                }
+                            }).catch(e => {
+                                showToast("Exception: " + String(e), Toasts.Type.FAILURE);
+                            });
+                        }}
+                    >
+                        Apply Changes Now
+                    </Button>
+
+                    <Button
+                        color="red"
+                        onClick={() => {
+                            revertAndLogPatches().then(result => {
+                                if (result.error || (result.failed ?? 0) > 0) {
+                                    showToast(
+                                        result.error ? "Failed: " + result.error : `Failed to revert ${result.failed} patch(es).`,
+                                        Toasts.Type.FAILURE
+                                    );
+                                } else {
+                                    showToast("All tracked patches reverted.", Toasts.Type.SUCCESS);
+                                }
+                            }).catch(e => {
+                                showToast("Exception: " + String(e), Toasts.Type.FAILURE);
+                            });
+                        }}
+                    >
+                        Revert All Patches Now
+                    </Button>
+                </Flex>
 
                 <Paragraph style={{ fontWeight: 600, fontSize: "0.95em", textAlign: "center", maxWidth: "600px" }}>
-                    Note: Newly enabled patches apply instantly. However, disabling patches requires
-                    restarting Discord fully to clear previously written runtime memory hooks!
+                    Apply Changes Now first restores all VoicePatcher writes tracked by the native patcher, then applies only the patches currently enabled above.
+                    Disabling a patch no longer requires restarting Discord. Disabling the VoicePatcher plugin also attempts to restore all tracked patches automatically.
                 </Paragraph>
             </div>
         </div>
