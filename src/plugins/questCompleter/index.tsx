@@ -29,7 +29,8 @@ const FLUX_EVENTS = {
 } as const;
 
 const ApplicationStreamingStore = findStoreLazy("ApplicationStreamingStore");
-const questAssetsBaseUrl = "https://cdn.discordapp.com/quests/";
+const cdnBaseUrl = "https://cdn.discordapp.com/";
+const questAssetsBaseUrl = `${cdnBaseUrl}quests/`;
 const QUEST_TASKS = ["WATCH_VIDEO", "PLAY_ON_DESKTOP", "STREAM_ON_DESKTOP", "PLAY_ACTIVITY", "WATCH_VIDEO_ON_MOBILE"] as const;
 const HEARTBEAT_MAX_INTERVAL_MS = 60 * 1000;
 const HEARTBEAT_FINAL_BUFFER_MS = 1000;
@@ -129,6 +130,34 @@ function isQuestRunning(questId: string) {
     return runningQuests.has(questId) && !runningQuests.get(questId)?.cancelled;
 }
 
+function AutoCompleteIcon(props: any) {
+    return (
+        <svg
+            width={props?.width ?? 24}
+            height={props?.height ?? 24}
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            fillRule="evenodd"
+        >
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+        </svg>
+    );
+}
+
+function StopCompletingIcon(props: any) {
+    return (
+        <svg
+            width={props?.width ?? 24}
+            height={props?.height ?? 24}
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            fillRule="evenodd"
+        >
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-4 6h8v8H8V8z" />
+        </svg>
+    );
+}
+
 function isQuestUserStatusCompleted(userStatus: any) {
     return userStatus?.completedAt != null || userStatus?.completed_at != null;
 }
@@ -187,12 +216,36 @@ function stopQuest(questId: string) {
     showToast(`Stopped quest: ${questData.questName}`, Toasts.Type.MESSAGE);
 }
 
+function buildQuestAssetUrl(questId: string, asset: string, theme?: "dark" | "light") {
+    // Mirrors Discord's getQuestAssetUrl: asset names containing "/" are already
+    // paths relative to the CDN root, while plain filenames live under
+    // /quests/{questId}/{theme?}/{filename}
+    if (asset.includes("/")) return `${cdnBaseUrl}${asset}`;
+    return `${questAssetsBaseUrl}${questId}${theme ? `/${theme}` : ""}/${asset}`;
+}
+
+function resolveThemedAsset(questId: string, base: string | undefined, dark: string | undefined, light: string | undefined) {
+    // Mirror Discord's game_tile/logo_type resolution: a themed variant is used as-is
+    // (no theme segment in the URL), while the base asset is used with a theme segment
+    const themed = dark ?? light;
+    if (themed != null) return buildQuestAssetUrl(questId, themed);
+    if (base != null) return buildQuestAssetUrl(questId, base, "dark");
+    return null;
+}
+
 function getQuestImageConfig(questId: string) {
     const quest = getQuestById(questId);
-    return {
-        icon: `${questAssetsBaseUrl}${questId}/dark/${quest.config.assets.logotype}`,
-        image: `${questAssetsBaseUrl}${questId}/${quest.config.assets.hero}`
-    };
+    const { logotype, logotypeDark, logotypeLight, gameTile, gameTileDark, gameTileLight, hero } = quest.config.assets;
+
+    // Discord renders game tiles as squares (see its QuestPartnerBranding component),
+    // while logotypes are wide wordmarks that would be squashed into the square
+    // notification icon slot — so prefer the game tile, falling back to the logotype
+    const icon = resolveThemedAsset(questId, gameTile, gameTileDark, gameTileLight)
+        ?? resolveThemedAsset(questId, logotype, logotypeDark, logotypeLight);
+
+    const image = hero != null ? buildQuestAssetUrl(questId, hero) : undefined;
+
+    return { icon: icon ?? undefined, image };
 }
 
 function sleep(ms: number) {
@@ -579,13 +632,21 @@ export default definePlugin({
         {
             find: 'id:"share-link"',
             replacement: {
-                match: /questId:(\w+)\.quest\.id(.*?)(\(0,(\w{1,3})\.(\w{1,3})\)\((\w{1,3})\.(\w{1,3}),\{id:"share-link"[^}]+}\}[^)]*\))/,
-                replace: 'questId:$1.quest.id$2$3,(0,$4.$5)($6.$7,{id:"Auto-complete",label:"Auto Complete",action:()=>{$self.openCompleteQuest($1.quest.id);}})'
+                match: /questId:(\i)\.quest\.id(.{0,5000}?)(\i&&\(0,(\i)\.(\i)\)\((\i)\.(\i),\{id:"share-link")/,
+                replace: 'questId:$1.quest.id$2(0,$4.$5)($6.$7,{id:"quest-completer",label:$self.autoCompleteLabel($1.quest.id),action:()=>$self.openCompleteQuest($1.quest.id),icon:$self.autoCompleteIcon($1.quest.id),leadingAccessory:{type:"icon",icon:$self.autoCompleteIcon($1.quest.id)}}),$3'
             }
         }
     ],
 
     settingsAboutComponent: QuestCompleterSettings,
+
+    autoCompleteLabel(questId: string) {
+        return runningQuests.has(questId) ? "Stop Completing" : "Auto Complete";
+    },
+
+    autoCompleteIcon(questId: string) {
+        return runningQuests.has(questId) ? StopCompletingIcon : AutoCompleteIcon;
+    },
 
     start() { },
 
