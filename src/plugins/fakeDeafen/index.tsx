@@ -272,8 +272,8 @@ export default definePlugin({
         {
             find: "#{intl::USER_PROFILE_ACCOUNT_POPOUT_BUTTON_A11Y_LABEL}",
             replacement: {
-                match: /speaking:.{0,100}style:.,children:\[/,
-                replace: "$&$self.fakeDeafenToggleButton(arguments[0]),"
+                match: /\(0,\i\.jsxs?\)\(\i,\{accountContainerRef/,
+                replace: "$self.fakeDeafenToggleButton(arguments[0]),$&"
             }
         }
     ],
