@@ -5,16 +5,16 @@
  */
 
 import { disableStyle, enableStyle } from "@api/Styles";
+import { IconWithTooltip, LogIcon } from "@plugins/soundBoardLogger/components/Icons";
+import { openSoundBoardLog } from "@plugins/soundBoardLogger/components/SoundBoardLog";
+import settings from "@plugins/soundBoardLogger/settings";
+import { updateLoggedSounds } from "@plugins/soundBoardLogger/store";
+import { getListeners } from "@plugins/soundBoardLogger/utils";
 import { Devs } from "@utils/constants";
 import definePlugin from "@utils/types";
 import { FluxDispatcher } from "@webpack/common";
 
-import { IconWithTooltip, LogIcon } from "./components/Icons";
-import { openSoundBoardLog } from "./components/SoundBoardLog";
-import settings from "./settings";
-import { updateLoggedSounds } from "./store";
-import styles from "./styles.css?managed";
-import { getListeners } from "./utils";
+import styles from "./styles.css?managed"; // CSS must be imported relatively; the build's style plugin doesn't resolve the @plugins alias
 
 export default definePlugin({
     name: "SoundBoardLogger",

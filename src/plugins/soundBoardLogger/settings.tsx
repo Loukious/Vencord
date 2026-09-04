@@ -6,10 +6,9 @@
 
 import { definePluginSettings } from "@api/Settings";
 import { Button } from "@components/Button";
+import { openSoundBoardLog } from "@plugins/soundBoardLogger/components/SoundBoardLog";
 import { OptionType } from "@utils/types";
 import { Forms, TextInput, useState } from "@webpack/common";
-
-import { openSoundBoardLog } from "./components/SoundBoardLog";
 
 const settings = definePluginSettings({
     SavedIds: {

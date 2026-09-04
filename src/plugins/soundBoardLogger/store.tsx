@@ -5,9 +5,8 @@
  */
 
 import { DataStore } from "@api/index";
-
-import settings from "./settings";
-import { SoundEvent, SoundLogEntry } from "./utils";
+import settings from "@plugins/soundBoardLogger/settings";
+import { SoundEvent, SoundLogEntry } from "@plugins/soundBoardLogger/utils";
 
 /** Attempts to add a sound event to the log */
 export async function updateLoggedSounds(sound: SoundEvent): Promise<void> {

@@ -8,64 +8,62 @@ import { Button } from "@components/Button";
 import ErrorBoundary from "@components/ErrorBoundary";
 import { Flex } from "@components/Flex";
 import { Paragraph } from "@components/Paragraph";
+import { openCloneSoundModal } from "@plugins/soundBoardLogger/components/CloneSoundModal";
+import { openMoreUsersModal } from "@plugins/soundBoardLogger/components/MoreUsersModal";
+import { openUserModal } from "@plugins/soundBoardLogger/components/UserModal";
 import { clearLoggedSounds, getLoggedSounds } from "@plugins/soundBoardLogger/store";
-import { addListener, AvatarStyles, cl, downloadAudio, getEmojiUrl, getSoundboardVolume, playSound, removeListener, SoundLogEntry } from "@plugins/soundBoardLogger/utils";
+import { addListener, AvatarStyles, cl, downloadAudio, getEmojiUrl, getSoundboardVolume, getSoundName, playSound, removeListener, SoundboardStore, SoundLogEntry } from "@plugins/soundBoardLogger/utils";
 import { copyWithToast } from "@utils/discord";
 import { Margins } from "@utils/margins";
 import { RenderModalProps, User } from "@vencord/discord-types";
-import { Clickable, ContextMenuApi, FluxDispatcher, Menu, Modal, openModal, Tooltip, useEffect, UserSummaryItem, UserUtils, useState } from "@webpack/common";
+import { Clickable, ContextMenuApi, FluxDispatcher, Menu, Modal, openModal, React, Timestamp, Tooltip, useCallback, useEffect, useMemo, UserSummaryItem, UserUtils, useState, useStateFromStores } from "@webpack/common";
+import moment from "moment";
 
-import { openCloneSoundModal } from "./CloneSoundModal";
-import { openMoreUsersModal } from "./MoreUsersModal";
-import { openUserModal } from "./UserModal";
-
-export async function openSoundBoardLog(): Promise<void> {
-
-    const data = await getLoggedSounds();
+export function openSoundBoardLog(): void {
+    // Open the modal right away; the log itself is loaded inside the component
+    // so the modal appears instantly instead of after the DataStore roundtrip
     openModal(props => <ErrorBoundary>
-        <SoundBoardLog data={data} modalProps={props} />
+        <SoundBoardLog modalProps={props} />
     </ErrorBoundary>);
 
 }
 
-export default function SoundBoardLog({ data, modalProps }: { data: SoundLogEntry[]; modalProps: RenderModalProps; }) {
-    const [sounds, setSounds] = useState(data);
-    const [users, setUsers] = useState<User[]>([]);
-    const update = async () => setSounds(await getLoggedSounds());
+function SoundContextMenu({ item }: { item: SoundLogEntry; }) {
+    const label = id => `soundboardlogger-${id}`;
+    return (
+        <Menu.Menu
+            navId="soundboardlogger-sound-menu"
+            onClose={() => FluxDispatcher.dispatch({ type: "CONTEXT_MENU_CLOSE" })}
+        >
+            <Menu.MenuGroup label="Extra buttons">
+                <Menu.MenuItem
+                    id={label("clone")}
+                    label="Clone sound"
+                    action={() => openCloneSoundModal(item)}
+                />
+            </Menu.MenuGroup>
+        </Menu.Menu>
+    );
+}
 
-    // Update the sounds state when a new sound is played
-    useEffect(() => {
-        const onSound = () => update();
-        addListener(onSound);
-        return () => removeListener(onSound);
-    }, []);
-
+/** A single logged sound */
+function SoundRowImpl({ item, users, volume, onShowMoreUsers, onClickUser }: {
+    item: SoundLogEntry;
+    users: User[];
+    volume: number;
+    onShowMoreUsers: (item: SoundLogEntry, users: User[]) => void;
+    onClickUser: (item: SoundLogEntry, user: User) => void;
+}) {
     const avatarsMax = 2;
+    const itemUsers = users.filter(user => item.users.some(u => u.id === user.id));
+    const lastPlayed = Math.max(...item.users.flatMap(user => user.plays));
 
-    // Update the users state when a new sound is played
-    useEffect(() => {
-        (async () => {
-            /** Array of user IDs without a resolved user object */
-            const missing = sounds
-                .flatMap(sound => sound.users) // Get all users who have used any sound
-                .map(user => user.id) // Get their ID ( user is {id: string, plays: number[]} )
-                .filter((id, index, self) => index === self.indexOf(id)) // Filter the array to remove non unique values
-                .filter(id => !users.map(user => user.id).includes(id)); // Filter the IDs to only get the ones not already in the users state
-            if (!missing.length) return; // return if every user ID is already in users
-
-            for (const id of missing) {
-                const user = await UserUtils.getUser(id).catch(() => void 0);
-                if (user) setUsers(u => [...u, user]);
-            }
-        })();
-    }, [sounds]);
-
-    function renderMoreUsers(item, itemUsers) {
+    function renderMoreUsers() {
         return (
             <Clickable
                 className={AvatarStyles.clickableAvatar}
                 onClick={() => {
-                    onClickShowMoreUsers(item, itemUsers);
+                    onShowMoreUsers(item, itemUsers);
                 }}
             >
                 <Tooltip text={`${itemUsers.length - avatarsMax} other people used this sound...`}>
@@ -83,32 +81,126 @@ export default function SoundBoardLog({ data, modalProps }: { data: SoundLogEntr
         );
     }
 
-    /** This function is called when you click the "Show more users" button. */
-    function onClickShowMoreUsers(item: SoundLogEntry, users: User[]): void {
-        openMoreUsersModal(item, users, onClickUser);
-    }
+    return (
+        <div
+            className={cl("sound")}
+            onContextMenu={e =>
+                ContextMenuApi.openContextMenu(e, () => <SoundContextMenu item={item} />)
+            }
+        >
+            <Flex flexDirection="row" className={cl("sound-info")}>
+                <img
+                    src={getEmojiUrl(item.emoji)}
+                    className={cl("sound-emoji")}
+                />
+                <Paragraph size="md" className={cl("sound-id")}>{getSoundName(item.soundId)}</Paragraph>
+            </Flex>
+            <UserSummaryItem
+                users={itemUsers.slice(0, avatarsMax)} // Trimmed array to the size of max
+                count={item.users.length - 1} // True size (counting users that aren't rendered) - 1
+                guildId={undefined}
+                renderIcon={false}
+                max={avatarsMax}
+                showDefaultAvatarsForNullUsers
+                showUserPopout
+                renderMoreUsers={renderMoreUsers}
+                className={cl("sound-users")}
+                renderUser={(user: User) => (
+                    <Clickable
+                        key={user.id} // Add a unique key for each user
+                        className={AvatarStyles.clickableAvatar}
+                        onClick={() => {
+                            onClickUser(item, user);
+                        }}
+                    >
+                        <img
+                            className={AvatarStyles.avatar}
+                            src={user.getAvatarURL(void 0, 80, true)}
+                            alt={user.username}
+                            title={user.username}
+                        />
+                    </Clickable>
+                )}
+            />
+            <Timestamp className={cl("sound-timestamp")} timestamp={new Date(lastPlayed)} isInline={false}>
+                {moment(lastPlayed).format("YYYY-MM-DD HH:mm")}
+            </Timestamp>
+            <Flex flexDirection="row" className={cl("sound-buttons")}>
+                <Button variant="primary" size="small" onClick={() => downloadAudio(item.soundId)}>Download</Button>
+                <Button variant="positive" size="small" onClick={() => copyWithToast(item.soundId, "ID copied to clipboard!")}>Copy ID</Button>
+                <Tooltip text={`Soundboard volume: ${volume}%`}>
+                    {({ onMouseEnter, onMouseLeave }) =>
+                        <Button variant="primary" size="small" onClick={() => playSound(item.soundId)} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>Play Sound</Button>
+                    }
+                </Tooltip>
+            </Flex>
+        </div>
+    );
+}
 
-    function onClickUser(item: SoundLogEntry, user: User) {
-        openUserModal(item, user, sounds);
-    }
+export default function SoundBoardLog({ modalProps }: { modalProps: RenderModalProps; }) {
+    const [sounds, setSounds] = useState<SoundLogEntry[]>([]);
+    const [users, setUsers] = useState<User[]>([]);
+    // Most recently played first. Defensive against malformed entries
+    // (missing users/plays yield NaN, which would corrupt the sort)
+    const lastPlayed = (item: SoundLogEntry) => {
+        const times = item.users?.flatMap(user => user?.plays ?? []) ?? [];
+        return times.length ? Math.max(...times) : 0;
+    };
+    const update = async () => setSounds(
+        [...await getLoggedSounds()].sort((a, b) => lastPlayed(b) - lastPlayed(a))
+    );
 
-    function SoundContextMenu({ item }) {
-        const label = id => `soundboardlogger-${id}`;
-        return (
-            <Menu.Menu
-                navId="soundboardlogger-sound-menu"
-                onClose={() => FluxDispatcher.dispatch({ type: "CONTEXT_MENU_CLOSE" })}
-            >
-                <Menu.MenuGroup label="Extra buttons">
-                    <Menu.MenuItem
-                        id={label("clone")}
-                        label="Clone sound"
-                        action={() => openCloneSoundModal(item)}
-                    />
-                </Menu.MenuGroup>
-            </Menu.Menu>
-        );
-    }
+    // Memoized so the whole list isn't re-rendered whenever e.g. a new user
+    // gets resolved or the soundboard cache updates. Built here instead of at
+    // module level because React from @webpack/common is only assigned once
+    // webpack has finished loading
+    const SoundRow = useMemo(() => React.memo(SoundRowImpl), []);
+
+    // Load the log once the modal is already visible
+    useEffect(() => { update(); }, []);
+
+    // Re-render when the client's soundboard cache changes so unresolved
+    // names get filled in once the sounds are fetched
+    useStateFromStores([SoundboardStore], () => SoundboardStore.getSounds());
+
+    // Update the sounds state when a new sound is played
+    useEffect(() => {
+        const onSound = () => update();
+        addListener(onSound);
+        return () => removeListener(onSound);
+    }, []);
+
+    // Resolve the users that played the logged sounds
+    useEffect(() => {
+        /** Array of user IDs without a resolved user object */
+        const missing = [...new Set(sounds.flatMap(sound => sound.users).map(user => user.id))] // Unique IDs of users who have used any sound
+            .filter(id => !users.some(user => user.id === id)); // Only the ones not already in the users state
+        if (!missing.length) return; // return if every user ID is already in users
+
+        let cancelled = false;
+        // Fetch all missing users in parallel and re-render once, instead of
+        // sequentially with a re-render per user
+        Promise.all(missing.map(id => UserUtils.getUser(id).catch(() => null)))
+            .then(fetched => {
+                if (cancelled) return;
+                const newUsers = fetched.filter(Boolean);
+                if (newUsers.length) setUsers(existing => [...existing, ...newUsers]);
+            });
+        return () => { cancelled = true; };
+    }, [sounds, users]);
+
+    // Stable callbacks so the memoized rows don't re-render on every parent render
+    const onClickUser = useCallback(
+        (item: SoundLogEntry, user: User) => openUserModal(item, user, sounds),
+        [sounds]
+    );
+    const onShowMoreUsers = useCallback(
+        (item: SoundLogEntry, itemUsers: User[]) => openMoreUsersModal(item, itemUsers, onClickUser),
+        [onClickUser]
+    );
+    // Computed once per render instead of once per row
+    const volume = Math.floor(getSoundboardVolume());
 
     return (
         <Modal
@@ -125,63 +217,16 @@ export default function SoundBoardLog({ data, modalProps }: { data: SoundLogEntr
             }]}
         >
             <div className={cl("modal-content")}>
-                {sounds.length ? sounds.map(item => {
-                    const itemUsers = users.filter(user => item.users.map(u => u.id).includes(user.id));
-
-                    return (
-                        <div
-                            key={item.soundId}
-                            className={cl("sound")}
-                            onContextMenu={e =>
-                                ContextMenuApi.openContextMenu(e, () => <SoundContextMenu item={item} />)
-                            }
-                        >
-                            <Flex flexDirection="row" className={cl("sound-info")}>
-                                <img
-                                    src={getEmojiUrl(item.emoji)}
-                                    className={cl("sound-emoji")}
-                                />
-                                <Paragraph size="md" className={cl("sound-id")}>{item.soundId}</Paragraph>
-                            </Flex>
-                            <UserSummaryItem
-                                users={itemUsers.slice(0, avatarsMax)} // Trimmed array to the size of max
-                                count={item.users.length - 1} // True size (counting users that aren't rendered) - 1
-                                guildId={undefined}
-                                renderIcon={false}
-                                max={avatarsMax}
-                                showDefaultAvatarsForNullUsers
-                                showUserPopout
-                                renderMoreUsers={() => renderMoreUsers(item, itemUsers)}
-                                className={cl("sound-users")}
-                                renderUser={(user: User) => (
-                                    <Clickable
-                                        key={user.id} // Add a unique key for each user
-                                        className={AvatarStyles.clickableAvatar}
-                                        onClick={() => {
-                                            onClickUser(item, user);
-                                        }}
-                                    >
-                                        <img
-                                            className={AvatarStyles.avatar}
-                                            src={user.getAvatarURL(void 0, 80, true)}
-                                            alt={user.username}
-                                            title={user.username}
-                                        />
-                                    </Clickable>
-                                )}
-                            />
-                            <Flex flexDirection="row" className={cl("sound-buttons")}>
-                                <Button variant="primary" size="small" onClick={() => downloadAudio(item.soundId)}>Download</Button>
-                                <Button variant="positive" size="small" onClick={() => copyWithToast(item.soundId, "ID copied to clipboard!")}>Copy ID</Button>
-                                <Tooltip text={`Soundboard volume: ${Math.floor(getSoundboardVolume())}%`}>
-                                    {({ onMouseEnter, onMouseLeave }) =>
-                                        <Button variant="primary" size="small" onClick={() => playSound(item.soundId)} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>Play Sound</Button>
-                                    }
-                                </Tooltip>
-                            </Flex>
-                        </div>
-                    );
-                }) :
+                {sounds.length ? sounds.map(item => (
+                    <SoundRow
+                        key={item.soundId}
+                        item={item}
+                        users={users}
+                        volume={volume}
+                        onShowMoreUsers={onShowMoreUsers}
+                        onClickUser={onClickUser}
+                    />
+                )) :
                     <div style={{ textAlign: "center" }} className={Margins.top16}>
                         <img
                             src="https://raw.githubusercontent.com/fres621/assets/main/shiggy.png"

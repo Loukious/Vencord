@@ -33,8 +33,35 @@
     flex: 1;
 }
 
+.vc-soundlog-sound {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 2fr) auto auto;
+    align-items: center;
+    column-gap: 16px;
+}
+
+.vc-soundlog-sound-info,
+.vc-soundlog-sound-users {
+    min-width: 0;
+}
+
+.vc-soundlog-sound-id {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .vc-soundlog-sound-users {
     flex: 2;
+}
+
+.vc-soundlog-sound-timestamp {
+    flex: 0 0 auto;
+    font-size: 0.85em;
+    font-weight: 500;
+    color: var(--text-muted);
+    text-align: right;
+    white-space: nowrap;
 }
 
 

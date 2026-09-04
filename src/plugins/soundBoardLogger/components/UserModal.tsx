@@ -8,15 +8,14 @@ import { BaseText } from "@components/BaseText";
 import { Flex } from "@components/Flex";
 import { Heading } from "@components/Heading";
 import { CopyIcon } from "@components/Icons";
-import { AvatarStyles, cl, downloadAudio, getEmojiUrl, playSound, SoundLogEntry, User } from "@plugins/soundBoardLogger/utils";
+import { DownloadIcon, IconWithTooltip, PlayIcon } from "@plugins/soundBoardLogger/components/Icons";
+import { AvatarStyles, cl, downloadAudio, getEmojiUrl, getSoundName, playSound, SoundLogEntry, User } from "@plugins/soundBoardLogger/utils";
 import { copyWithToast, openUserProfile } from "@utils/discord";
 import { Margins } from "@utils/margins";
 import { classes } from "@utils/misc";
 import { RenderModalProps } from "@vencord/discord-types";
 import { Clickable, Modal, openModal, Timestamp, UserSummaryItem } from "@webpack/common";
 import moment from "moment";
-
-import { DownloadIcon, IconWithTooltip, PlayIcon } from "./Icons";
 
 export function openUserModal(item, user, sounds) {
     openModal(props => <UserModal item={item} user={user} sounds={sounds} modalProps={props} />);
@@ -32,75 +31,75 @@ export default function UserModal({ item, user, sounds, modalProps }: { item: So
             title={user.username}
         >
             <div className={cl("user")}>
-            <Clickable onClick={() => {
-                modalProps.onClose();
-                openUserProfile(user.id);
-            }}>
-                <div className={cl("user-header")}>
+                <Clickable onClick={() => {
+                    modalProps.onClose();
+                    openUserProfile(user.id);
+                }}>
+                    <div className={cl("user-header")}>
+                        <img
+                            className={cl("user-avatar")}
+                            src={user.getAvatarURL(void 0, 512, true)}
+                            alt=""
+                            style={{ cursor: "pointer" }}
+                        />
+                        <Heading tag="h2" className={cl("user-name")} style={{ textTransform: "none", cursor: "pointer" }}>{user.username}</Heading>
+                    </div>
+                </Clickable>
+                <Flex flexDirection="row" style={{ gap: "10px" }}>
                     <img
-                        className={cl("user-avatar")}
-                        src={user.getAvatarURL(void 0, 512, true)}
+                        className={cl("user-sound-emoji")}
+                        src={getEmojiUrl(item.emoji)}
                         alt=""
-                        style={{ cursor: "pointer" }}
                     />
-                    <Heading tag="h2" className={cl("user-name")} style={{ textTransform: "none", cursor: "pointer" }}>{user.username}</Heading>
-                </div>
-            </Clickable>
-            <Flex flexDirection="row" style={{ gap: "10px" }}>
-                <img
-                    className={cl("user-sound-emoji")}
-                    src={getEmojiUrl(item.emoji)}
-                    alt=""
-                />
-                <Flex flexDirection="column" style={{ gap: "7px", height: "68px", justifyContent: "space-between" }}>
-                    <BaseText weight="bold" style={{ height: "20px" }}>{item.soundId}</BaseText>
-                    <BaseText>Played {currentUser.plays.length} {currentUser.plays.length === 1 ? "time" : "times"}.</BaseText>
-                    <BaseText>Last played: <Timestamp timestamp={new Date(moment(currentUser.plays.at(-1)).toDate())} /></BaseText>
+                    <Flex flexDirection="column" style={{ gap: "7px", height: "68px", justifyContent: "space-between" }}>
+                        <BaseText weight="bold" style={{ height: "20px" }}>{getSoundName(item.soundId)}</BaseText>
+                        <BaseText>Played {currentUser.plays.length} {currentUser.plays.length === 1 ? "time" : "times"}.</BaseText>
+                        <BaseText>Last played: <Timestamp timestamp={new Date(moment(currentUser.plays.at(-1)).toDate())} /></BaseText>
+                    </Flex>
                 </Flex>
-            </Flex>
-            <Heading tag="h2" className={classes(Margins.top16, Margins.bottom8)}>
-                {soundsDoneByCurrentUser.length ? "Also played:" : " "}
-            </Heading>
-            <Flex style={{ justifyContent: "space-between" }}>
-                <UserSummaryItem
-                    users={soundsDoneByCurrentUser}
-                    count={soundsDoneByCurrentUser.length}
-                    guildId={undefined}
-                    renderIcon={false}
-                    max={10}
-                    showDefaultAvatarsForNullUsers
-                    showUserPopout
-                    renderMoreUsers={() =>
-                        <div className={AvatarStyles.emptyUser}>
-                            <div className={AvatarStyles.moreUsers}>
-                                ...
+                <Heading tag="h2" className={classes(Margins.top16, Margins.bottom8)}>
+                    {soundsDoneByCurrentUser.length ? "Also played:" : " "}
+                </Heading>
+                <Flex style={{ justifyContent: "space-between" }}>
+                    <UserSummaryItem
+                        users={soundsDoneByCurrentUser}
+                        count={soundsDoneByCurrentUser.length}
+                        guildId={undefined}
+                        renderIcon={false}
+                        max={10}
+                        showDefaultAvatarsForNullUsers
+                        showUserPopout
+                        renderMoreUsers={() =>
+                            <div className={AvatarStyles.emptyUser}>
+                                <div className={AvatarStyles.moreUsers}>
+                                    ...
+                                </div>
                             </div>
-                        </div>
-                    }
-                    className={cl("user-sounds")}
-                    renderUser={({ soundId, emoji }) => (
-                        <Clickable
-                            className={AvatarStyles.clickableAvatar}
-                            onClick={() => {
-                                modalProps.onClose();
-                                openUserModal(sounds.find(sound => sound.soundId === soundId), user, sounds);
-                            }}
-                        >
-                            <img
-                                className={AvatarStyles.avatar}
-                                src={getEmojiUrl(emoji)}
-                                alt={soundId}
-                                title={soundId}
-                            />
-                        </Clickable>
-                    )}
-                />
-                <div className={cl("user-buttons")}>
-                    <IconWithTooltip text="Download" icon={<DownloadIcon />} onClick={() => downloadAudio(item.soundId)} />
-                    <IconWithTooltip text="Copy ID" icon={<CopyIcon />} onClick={() => copyWithToast(item.soundId, "ID copied to clipboard!")} />
-                    <IconWithTooltip text="Play Sound" icon={<PlayIcon />} onClick={() => playSound(item.soundId)} />
-                </div>
-            </Flex>
+                        }
+                        className={cl("user-sounds")}
+                        renderUser={({ soundId, emoji }) => (
+                            <Clickable
+                                className={AvatarStyles.clickableAvatar}
+                                onClick={() => {
+                                    modalProps.onClose();
+                                    openUserModal(sounds.find(sound => sound.soundId === soundId), user, sounds);
+                                }}
+                            >
+                                <img
+                                    className={AvatarStyles.avatar}
+                                    src={getEmojiUrl(emoji)}
+                                    alt={getSoundName(soundId)}
+                                    title={getSoundName(soundId)}
+                                />
+                            </Clickable>
+                        )}
+                    />
+                    <div className={cl("user-buttons")}>
+                        <IconWithTooltip text="Download" icon={<DownloadIcon />} onClick={() => downloadAudio(item.soundId)} />
+                        <IconWithTooltip text="Copy ID" icon={<CopyIcon />} onClick={() => copyWithToast(item.soundId, "ID copied to clipboard!")} />
+                        <IconWithTooltip text="Play Sound" icon={<PlayIcon />} onClick={() => playSound(item.soundId)} />
+                    </div>
+                </Flex>
             </div>
         </Modal>
     );

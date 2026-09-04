@@ -8,7 +8,7 @@ import ErrorBoundary from "@components/ErrorBoundary";
 import { Flex } from "@components/Flex";
 import { Heading } from "@components/Heading";
 import { Paragraph } from "@components/Paragraph";
-import { cl, getEmojiUrl, SoundLogEntry, User } from "@plugins/soundBoardLogger/utils";
+import { cl, getEmojiUrl, getSoundName, SoundLogEntry, User } from "@plugins/soundBoardLogger/utils";
 import { RenderModalProps } from "@vencord/discord-types";
 import { Clickable, Modal, openModal } from "@webpack/common";
 
@@ -32,7 +32,7 @@ export default function MoreUsersModal({ item, users, onClickUser, modalProps }:
                         src={getEmojiUrl(item.emoji)}
                         alt=""
                     />
-                    <Heading tag="h2" className={cl("more-soundId")}>{item.soundId}</Heading>
+                    <Heading tag="h2" className={cl("more-soundId")}>{getSoundName(item.soundId)}</Heading>
                 </div>
             }
         >

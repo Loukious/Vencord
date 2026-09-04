@@ -8,7 +8,7 @@ import { BaseText } from "@components/BaseText";
 import { Flex } from "@components/Flex";
 import { HeadingTertiary } from "@components/Heading";
 import { Paragraph } from "@components/Paragraph";
-import { cl, getEmojiUrl, SoundEvent } from "@plugins/soundBoardLogger/utils";
+import { cl, getEmojiUrl, getSoundName, SoundEvent } from "@plugins/soundBoardLogger/utils";
 import { Margins } from "@utils/margins";
 import { classes } from "@utils/misc";
 import { LazyComponent } from "@utils/react";
@@ -126,7 +126,7 @@ export function CloneSoundModal({ item, modalProps }: { item: SoundEvent, modalP
             <HeadingTertiary className={Margins.top16}>Cloning Sound</HeadingTertiary>
             <CustomInput style={{ display: "flex", flexDirection: "row", gap: "10px", alignItems: "center" }} className={Margins.bottom16}>
                 <img src={getEmojiUrl(item.emoji)} width="24" height="24" />
-                <BaseText>{item.soundId}</BaseText>
+                <BaseText>{getSoundName(item.soundId)}</BaseText>
             </CustomInput>
             <HeadingTertiary aria-required="true">Add to server:</HeadingTertiary>
             <SearchableSelect
