@@ -49,12 +49,6 @@ const settings = definePluginSettings({
         default: true,
         restartNeeded: true
     },
-    enableAdvancedSignals: {
-        type: OptionType.BOOLEAN,
-        description: "Enable advanced clip signals (auto-clip triggers)",
-        default: true,
-        restartNeeded: true
-    },
     richPresenceTagging: {
         type: OptionType.SELECT,
         description: "When should clips be tagged with the current Rich Presence?",
@@ -67,12 +61,6 @@ const settings = definePluginSettings({
     enableScreenshotKeybind: {
         type: OptionType.BOOLEAN,
         description: "Enable the screenshot keybind feature",
-        default: true,
-        restartNeeded: true
-    },
-    enableVoiceOnlyClips: {
-        type: OptionType.BOOLEAN,
-        description: "Enable voice-only clips (audio without video)",
         default: true,
         restartNeeded: true
     }
@@ -105,27 +93,53 @@ export default definePlugin({
                 replace: "$&return true;"
             }
         },
+        // The framerate/timeslot option arrays used to live inline in the clips
+        // settings module; the client now keeps them in a separate module whose
+        // functions are referenced from the settings via useOptions
         {
-            find: ".CLIPS_FRAME_RATE,{",
-            replacement: {
-                match: /\[\{.{0,25}\i.\i.FPS_15.{0,500}\}\]/,
-                replace: "$self.patchFramerates($&)"
-            }
-        },
-        {
-            find: ".CLIPS_LENGTH,{",
-            replacement: {
-                match: /\[\{.{0,25}\i.\i.SECONDS_30.{0,500}\}\]/,
-                replace: "$self.patchTimeslots($&)"
-            }
+            find: 'id:"30s"',
+            replacement: [
+                {
+                    match: /\[\{id:"30s",value:\i\.\i\.SECONDS_30.{0,500}?\},?\]/,
+                    // The arrays are returned directly (return[...]), so the replacement
+                    // must start with a space or it would fuse with the "return" keyword
+                    replace: " $self.patchTimeslots($&)"
+                },
+                {
+                    match: /\[\{id:"15",value:\i\.\i\.FPS_15.{0,500}?\},?\]/,
+                    replace: " $self.patchFramerates($&)"
+                }
+            ]
         },
         // enables clips
+        // The experiment was slimmed down: only enableClips and
+        // ignorePlatformRestriction remain as config (enableVoiceOnlyClips and
+        // enableAdvancedSignals were removed from the client entirely), and the
+        // screenshot keybind is no longer a config flag — it's hardcoded off in
+        // two functions (the keybind settings UI row and the actual keybind
+        // handler gate)
         {
             find: "2026-03-clips-experiment",
-            replacement: {
-                match: /defaultConfig:\s*\{\s*enableClips:\s*!\d\s*,\s*ignorePlatformRestriction:\s*!\d\s*,\s*enableScreenshotKeybind:\s*!\d\s*,\s*enableVoiceOnlyClips:\s*!\d\s*,\s*enableSpeakingIndicators:\s*!\d\s*,\s*enableAdvancedSignals:\s*!\d\s*,?\s*\}/,
-                replace: "defaultConfig:{enableClips:!0,ignorePlatformRestriction:$self.settings.store.ignorePlatformRestriction,enableScreenshotKeybind:$self.settings.store.enableScreenshotKeybind,enableVoiceOnlyClips:$self.settings.store.enableVoiceOnlyClips,enableSpeakingIndicators:$self.settings.store.enableAdvancedSignals,enableAdvancedSignals:$self.settings.store.enableAdvancedSignals}"
-            }
+            replacement: [
+                {
+                    // Enable clips for everyone and honor the platform
+                    // restriction setting, in the defaults and in both
+                    // experiment variations (enrolled users get these merged
+                    // over the defaults)
+                    match: /defaultConfig:\{enableClips:!\d,ignorePlatformRestriction:!\d\},variations:\{1:\{enableClips:!0,ignorePlatformRestriction:!\d\},2:\{enableClips:!0,ignorePlatformRestriction:!\d\},?\}/,
+                    replace: "defaultConfig:{enableClips:!0,ignorePlatformRestriction:$self.settings.store.ignorePlatformRestriction},variations:{1:{enableClips:!0,ignorePlatformRestriction:$self.settings.store.ignorePlatformRestriction},2:{enableClips:!0,ignorePlatformRestriction:$self.settings.store.ignorePlatformRestriction}}"
+                },
+                {
+                    // Screenshot keybind flag used by the keybind settings UI
+                    match: /(?<=function h\(\)\{)return!\d/,
+                    replace: "$self.settings.store.enableScreenshotKeybind"
+                },
+                {
+                    // Screenshot keybind gate in the actual keybind handler
+                    match: /(?<=function A\(\)\{)return!\d/,
+                    replace: "$self.settings.store.enableScreenshotKeybind"
+                }
+            ]
         },
         {
             find: "#{intl::CLIPS_UNKNOWN_SOURCE}",
