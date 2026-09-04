@@ -145,6 +145,12 @@ const settings = definePluginSettings({
         description: "Whether to disable the embed permission check when sending fake emojis and stickers",
         type: OptionType.BOOLEAN,
         default: false
+    },
+    enableSoundboardBypass: {
+        description: "Allows using soundboard sounds from all guilds anywhere (normally requires Nitro). Note: sounds from other guilds are only audible to you, not other people in the call",
+        type: OptionType.BOOLEAN,
+        default: true,
+        restartNeeded: true
     }
 });
 
@@ -225,6 +231,13 @@ export default definePlugin({
                 {
                     match: /(?<=canUsePremiumAppIcons:function\(\i\)\{)/,
                     replace: "return true;"
+                },
+                {
+                    // Unlocks the "use sounds everywhere" perk: makes the picker
+                    // include every joined guild's sounds and lets them be played
+                    match: /(?<=canUseSoundboardEverywhere:function\(\i\)\{)/,
+                    replace: "return true;",
+                    predicate: () => settings.store.enableSoundboardBypass
                 }
             ],
         },
@@ -414,6 +427,18 @@ export default definePlugin({
             replacement: {
                 match: /(?<=type:"(?:SOUNDBOARD_SOUNDS_RECEIVED|GUILD_SOUNDBOARD_SOUND_CREATE|GUILD_SOUNDBOARD_SOUND_UPDATE|GUILD_SOUNDBOARD_SOUNDS_UPDATE)".+?available:)\i\.available/g,
                 replace: "true"
+            }
+        },
+        // Remove the Nitro lock from other guilds' sounds in the soundboard picker.
+        // The picker marks sections from other guilds with isNitroLocked based on
+        // a separate isPremium(TIER_2) check, which would leave them locked (upsell
+        // on click) even with canUseSoundboardEverywhere patched above
+        {
+            find: "soundboard_guild_",
+            predicate: () => settings.store.enableSoundboardBypass,
+            replacement: {
+                match: /\i\.\i\.isPremium\(\i,\i\.PremiumTypes\.TIER_2\)/,
+                replace: "!0"
             }
         }
     ],
