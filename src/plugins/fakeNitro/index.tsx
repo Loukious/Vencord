@@ -147,7 +147,7 @@ const settings = definePluginSettings({
         default: false
     },
     enableSoundboardBypass: {
-        description: "Allows using soundboard sounds from all guilds anywhere (normally requires Nitro). Note: sounds from other guilds are only audible to you, not other people in the call",
+        description: "Allows using soundboard sounds from all guilds anywhere (normally requires Nitro), and bypasses the \"Use Soundboard\"/\"Use External Sounds\" channel permissions so the soundboard works in any channel. Note: sounds from other guilds are only audible to you, not other people in the call",
         type: OptionType.BOOLEAN,
         default: true,
         restartNeeded: true
@@ -440,6 +440,22 @@ export default definePlugin({
                 match: /\i\.\i\.isPremium\(\i,\i\.PremiumTypes\.TIER_2\)/,
                 replace: "!0"
             }
+        },
+        // Bypass the soundboard channel permissions. Every soundboard permission
+        // check — the "Use External Sounds" gates (picker guild list, play
+        // validation, soundmoji picker) and the "Use Soundboard" gate that hides
+        // the open-soundboard button — goes through PermissionStore.can, so a
+        // single targeted check there covers all call sites. Both bits gate
+        // nothing but the soundboard, so other permission checks are unaffected
+        {
+            find: 'displayName="PermissionStore"',
+            predicate: () => settings.store.enableSoundboardBypass,
+            replacement: {
+                // can(permission, context, ...) — return true when the queried
+                // permission is exactly one of the soundboard bits
+                match: /(?<=can\((\i),\i,\i,\i,\i\)\{)/,
+                replace: (_, perm) => `if(${perm}==$self.useExternalSoundsBit||${perm}==$self.useSoundboardBit)return!0;`
+            }
         }
     ],
 
@@ -449,6 +465,16 @@ export default definePlugin({
 
     get canUseEmotes() {
         return (UserStore.getCurrentUser().premiumType ?? 0) > 0;
+    },
+
+    // Exposed for the soundboard permission bypass patch above; using the
+    // client's own bits avoids hardcoding raw values in the patch
+    get useExternalSoundsBit() {
+        return PermissionsBits.USE_EXTERNAL_SOUNDS;
+    },
+
+    get useSoundboardBit() {
+        return PermissionsBits.USE_SOUNDBOARD;
     },
 
     get canUseStickers() {
