@@ -87,11 +87,16 @@ export default definePlugin({
             }
         },
         { // New panel patch
+            // The activity panel was rewritten from a class component (whose
+            // renderVoicePanelIntroduction method this used to anchor on) into
+            // a function component; it now renders a single outer div with a
+            // classnames() className and a popout ref, wrapping the status
+            // card, the panel buttons and the popovers
             predicate: () => settings.store.showPanel,
-            find: "this.renderVoicePanelIntroduction",
+            find: "AutoclippingAccountPanelCoachmark",
             replacement: {
-                match: /(let{(?:channel:\i,)?canGoLive.{0,1500}\()"div"(?=,{(?:ref:this\.ref,)?className:\i(?:\.body|\(\)\(|\.\i))/,
-                replace: "$1$self.WrapperComponent"
+                match: /jsx\)\("div",\{className:(\i)\(\)\((\i)\.(\i),(\i)\),ref:(\i),/,
+                replace: "jsx)($self.WrapperComponent,{className:$1()($2.$3,$4),ref:$5,"
             }
         }
     ],
@@ -122,6 +127,13 @@ export default definePlugin({
 
         return (
             <>
+                {/* The wrapped div is the activity panel (stream status card + its
+                    buttons); the spectators section goes after it, landing between
+                    the stream panel and the "Voice Connected" panel below.
+                    The activityPanel class carries a border-bottom separator; drop
+                    it here so the panels don't get a divider between them (our own
+                    div below keeps its border, separating it from Voice Connected) */}
+                <div {...props} style={{ ...props.style, borderBottom: "none" }}>{props.children}</div>
                 <div className={classes(cl("spectators_panel"), ActivityPanelStyles.activityPanel)}>
                     {users.length ?
                         <>
@@ -153,7 +165,6 @@ export default definePlugin({
                         : <Paragraph>No spectators</Paragraph>
                     }
                 </div>
-                <div {...props}>{props.children}</div>
             </>
         );
     }),
