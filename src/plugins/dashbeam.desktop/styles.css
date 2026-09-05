@@ -1,0 +1,149 @@
+/* DashBeam progress card + message embed card styles */
+
+/* --- Transfer progress card (DOM, lives on document.body) --- */
+
+.db-progress-card {
+    position: fixed;
+    right: 24px;
+    bottom: 96px;
+    width: 320px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    background: var(--background-floating, #111214);
+    color: var(--text-default, #dbdee1);
+    box-shadow: var(--elevation-high, 0 8px 16px rgb(0 0 0 / 24%));
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.db-progress-card.db-closing {
+    opacity: 0;
+    transform: translateY(8px);
+}
+
+.db-progress-role {
+    font-size: 13px;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.db-progress-bar {
+    height: 6px;
+    border-radius: 3px;
+    background: var(--background-modifier-accent, #4e5058);
+    overflow: hidden;
+}
+
+.db-progress-fill {
+    height: 100%;
+    width: 0;
+    border-radius: 3px;
+    background: var(--button-brand-background, #5865f2);
+    transition: width 0.2s ease;
+}
+
+.db-progress-stats {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--text-muted, #949ba4);
+}
+
+.db-progress-actions {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.db-progress-cancel {
+    padding: 4px 12px;
+    border: none;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    color: var(--text-default, #dbdee1);
+    background: var(--button-danger-background, #da373c);
+}
+
+.db-progress-cancel:hover {
+    background: var(--button-danger-background-hover, #a12828);
+}
+
+/* --- Message embed card (React accessory under the ticket link) --- */
+
+/* Hide the raw ticket URL for plugin users — the embed card replaces it, and
+   an "Open in browser" button covers the fallback. Scoped to message markup
+   so a DashBeam link in a code block stays visible */
+[class*="markup"] a[href^="https://app.dashbeam.net/receive?ticket="] {
+    display: none;
+}
+
+.db-embed-card {
+    max-width: 420px;
+    margin-top: 4px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border-subtle, rgb(255 255 255 / 6%));
+    background: var(--background-base-lower, #2b2d31);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.db-embed-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text-default, #dbdee1);
+    overflow: hidden;
+}
+
+.db-embed-icon {
+    flex-shrink: 0;
+    color: var(--text-link, #00a8fc);
+}
+
+.db-embed-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.db-embed-meta {
+    font-size: 12px;
+    color: var(--text-muted, #949ba4);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 10px;
+}
+
+.db-embed-warning {
+    font-size: 11px;
+    color: var(--text-warning, #f0b232);
+}
+
+.db-embed-status {
+    font-size: 12px;
+    color: var(--text-muted, #949ba4);
+}
+
+.db-embed-status.db-status-ok {
+    color: var(--text-positive, #23a559);
+}
+
+.db-embed-status.db-status-error {
+    color: var(--text-danger, #f23f43);
+}
+
+.db-embed-buttons {
+    display: flex;
+    gap: 8px;
+    margin-top: 2px;
+}

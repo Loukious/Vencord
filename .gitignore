@@ -25,3 +25,8 @@ ExtensionCache/
 /settings
 
 src/plugins/betterCamera.desktop
+
+# DashBeam wasm binary — build artifact distributed via the
+# VencordDashBeamWasm GitHub release (auto-downloaded with a versioned cache);
+# the patched JS glue next to it IS tracked
+src/plugins/dashbeam.desktop/wasm/wasm_bridge_bg.wasm

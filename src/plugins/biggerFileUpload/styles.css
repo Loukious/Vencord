@@ -11,7 +11,7 @@
     border-radius: 8px;
     background: var(--background-floating, #111214);
     color: var(--text-default, #dbdee1);
-    box-shadow: var(--elevation-high, 0 8px 16px rgba(0, 0, 0, 0.24));
+    box-shadow: var(--elevation-high, 0 8px 16px rgb(0 0 0 / 24%));
     font-size: 14px;
     font-weight: 500;
     font-family: var(--font-primary, "gg sans", "Noto Sans", sans-serif);
