@@ -1,0 +1,57 @@
+.bfu-progress-card {
+    position: fixed;
+    right: 24px;
+    bottom: 96px;
+    width: 320px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    background: var(--background-floating, #111214);
+    color: var(--text-default, #dbdee1);
+    box-shadow: var(--elevation-high, 0 8px 16px rgba(0, 0, 0, 0.24));
+    font-size: 14px;
+    font-weight: 500;
+    font-family: var(--font-primary, "gg sans", "Noto Sans", sans-serif);
+    transition: opacity 0.3s;
+}
+
+.bfu-progress-card.bfu-closing {
+    opacity: 0;
+}
+
+.bfu-progress-uploader {
+    font-weight: 600;
+}
+
+.bfu-progress-name {
+    font-size: 12px;
+    color: var(--text-muted, #949ba4);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.bfu-progress-bar {
+    height: 6px;
+    border-radius: 3px;
+    background: var(--background-modifier-accent, #4e5058);
+    overflow: hidden;
+}
+
+.bfu-progress-fill {
+    height: 100%;
+    width: 0%;
+    border-radius: inherit;
+    background: var(--button-brand-background, #5865f2);
+    transition: width 0.25s ease-out;
+}
+
+.bfu-progress-stats {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--text-muted, #949ba4);
+}
