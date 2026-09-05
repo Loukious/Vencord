@@ -24,6 +24,20 @@ export function getUploadProgressNative() {
     return uploadProgress;
 }
 
+// The request currently in flight, so cancelUploadNative can destroy it.
+// Same single-slot assumption as uploadProgress: the renderer's upload flow
+// is sequential. ClientRequest is typed from node:http — node:https
+// re-exports the request function but not this type
+let activeUploadRequest: import("node:http").ClientRequest | null = null;
+
+export function cancelUploadNative() {
+    if (activeUploadRequest) {
+        activeUploadRequest.destroy(new Error("upload cancelled"));
+        return { cancelled: true };
+    }
+    return { cancelled: false };
+}
+
 // 1MB slices keep write() calls small enough that backpressure (and thus the
 // progress counter) reacts at a useful granularity
 const PROGRESS_CHUNK_BYTES = 1024 * 1024;
@@ -78,6 +92,13 @@ function streamUpload(method: string, url: string, headers: Record<string, strin
             // Idle timeout — fires only when nothing at all has flowed over
             // the socket for 60s, not on total upload duration
             req.setTimeout(60000, () => req.destroy(new Error("upload stalled (no data flowed for 60s)")));
+
+            // Track for cancelUploadNative; cleared on close so a finished
+            // upload can't be "cancelled" by a stray button press
+            activeUploadRequest = req;
+            req.on("close", () => {
+                if (activeUploadRequest === req) activeUploadRequest = null;
+            });
 
             if (!sendBody) {
                 req.end();

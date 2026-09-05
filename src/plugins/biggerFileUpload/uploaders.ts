@@ -25,6 +25,14 @@ function reportUploadError(channelId: string, uploader: string, reason: unknown)
             ? reason.message
             : JSON.stringify(reason);
 
+    // The user pressed Cancel — the abort error arrives here like any other
+    // failure, but it isn't one; skip the chat message and the failure toast
+    if (/upload cancelled/i.test(detail)) {
+        showToast("Upload cancelled", Toasts.Type.MESSAGE);
+        UploadManager.clearAll(channelId, DraftType.SlashCommand);
+        return;
+    }
+
     const excerpt = detail.length > 500 ? `${detail.slice(0, 500)}…` : detail;
     console.error(`[BiggerFileUpload] ${uploader} upload failed:`, reason);
 
@@ -208,7 +216,9 @@ export async function uploadFile(file: File, channelId: string) {
         return;
     }
 
-    const progressCard = createUploadProgressCard(uploader, file.name, file.size);
+    const progressCard = createUploadProgressCard(uploader, file.name, file.size, {
+        onCancel: () => Native.cancelUploadNative()
+    });
     const progressPoll = setInterval(() => {
         Native.getUploadProgressNative().then(progress => {
             if (progress) progressCard.update(progress.loaded, progress.total);

@@ -13,6 +13,11 @@ export interface UploadProgressCard {
     close(): void;
 }
 
+export interface UploadCardOptions {
+    /** Rendered as a destructive button; aborts the in-flight main-process upload */
+    onCancel?: () => void;
+}
+
 function formatBytes(bytes: number) {
     if (bytes < 1024) return `${bytes} B`;
     const units = ["KB", "MB", "GB"];
@@ -34,7 +39,7 @@ function formatDuration(seconds: number) {
 // The upload itself runs in the main process, and invoke-based IPC can't push
 // events back — so the card is plain DOM outside React's tree, updated by a
 // poller that reads the in-flight upload's byte count
-export function createUploadProgressCard(uploader: string, fileName: string, initialTotal: number): UploadProgressCard {
+export function createUploadProgressCard(uploader: string, fileName: string, initialTotal: number, options: UploadCardOptions = {}): UploadProgressCard {
     const card = document.createElement("div");
     card.className = "bfu-progress-card";
 
@@ -60,6 +65,20 @@ export function createUploadProgressCard(uploader: string, fileName: string, ini
     stats.append(statsLeft, statsRight);
 
     card.append(uploaderLabel, nameLabel, bar, stats);
+
+    // Mirrors DashBeam's progress card: destructive cancel that aborts the
+    // main-process upload
+    if (options.onCancel) {
+        const cancelRow = document.createElement("div");
+        cancelRow.className = "bfu-progress-actions";
+        const cancelBtn = document.createElement("button");
+        cancelBtn.className = "bfu-progress-cancel";
+        cancelBtn.textContent = "Cancel upload";
+        cancelBtn.addEventListener("click", options.onCancel);
+        cancelRow.appendChild(cancelBtn);
+        card.appendChild(cancelRow);
+    }
+
     document.body.appendChild(card);
 
     let lastUpdate = performance.now();
