@@ -23,10 +23,11 @@ export const FLUX_EVENTS = {
 export const cdnBaseUrl = "https://cdn.discordapp.com/";
 export const questAssetsBaseUrl = `${cdnBaseUrl}quests/`;
 
-export const QUEST_TASKS = ["WATCH_VIDEO", "PLAY_ON_DESKTOP", "STREAM_ON_DESKTOP", "PLAY_ACTIVITY", "WATCH_VIDEO_ON_MOBILE"] as const;
+export const QUEST_TASKS = ["WATCH_VIDEO", "PLAY_ON_DESKTOP", "STREAM_ON_DESKTOP", "PLAY_ACTIVITY", "ACHIEVEMENT_IN_ACTIVITY", "WATCH_VIDEO_ON_MOBILE"] as const;
 export type QuestTaskName = typeof QUEST_TASKS[number];
 
-export const HEARTBEAT_QUEST_TASKS = new Set<QuestTaskName>(["PLAY_ON_DESKTOP", "STREAM_ON_DESKTOP", "PLAY_ACTIVITY"]);
+// Tasks whose config references an application (taskApplication.id)
+export const APPLICATION_QUEST_TASKS = new Set<QuestTaskName>(["PLAY_ON_DESKTOP", "STREAM_ON_DESKTOP", "PLAY_ACTIVITY", "ACHIEVEMENT_IN_ACTIVITY"]);
 
 // Tasks whose terminal heartbeat the plugin sends itself. PLAY_ON_DESKTOP and
 // STREAM_ON_DESKTOP are deliberately absent: their fake game/stream metadata
@@ -40,7 +41,8 @@ export const QUEST_ERROR_MESSAGES: Record<QuestTaskName, string> = {
     WATCH_VIDEO_ON_MOBILE: "Failed to update video progress",
     PLAY_ON_DESKTOP: "Failed to update game progress",
     STREAM_ON_DESKTOP: "Failed to update stream progress",
-    PLAY_ACTIVITY: "Failed to update activity progress"
+    PLAY_ACTIVITY: "Failed to update activity progress",
+    ACHIEVEMENT_IN_ACTIVITY: "Failed to update activity objective progress"
 };
 
 export const HEARTBEAT_MAX_INTERVAL_MS = 60 * 1000;

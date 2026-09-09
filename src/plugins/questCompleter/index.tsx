@@ -17,9 +17,10 @@
 */
 
 import { showNotification } from "@api/Notifications";
+import { completeAchievementQuest } from "@plugins/questCompleter/achievementQuests";
 import { getQuestImageConfig } from "@plugins/questCompleter/assets";
 import { runQuestStep } from "@plugins/questCompleter/completion";
-import { HEARTBEAT_QUEST_TASKS, isApp, QUEST_TASKS } from "@plugins/questCompleter/constants";
+import { APPLICATION_QUEST_TASKS, isApp, QUEST_TASKS } from "@plugins/questCompleter/constants";
 import { completeActivityQuest, completeDesktopQuest, completeStreamQuest } from "@plugins/questCompleter/heartbeatQuests";
 import { AutoCompleteIcon, StopCompletingIcon } from "@plugins/questCompleter/icons";
 import { ApplicationStreamingStore, enrollQuest, getQuestById, getTaskApplication, sleep } from "@plugins/questCompleter/quests";
@@ -36,7 +37,8 @@ const questCompleters: Record<QuestTaskName, (context: QuestCompletionContext) =
     WATCH_VIDEO_ON_MOBILE: completeVideoQuest,
     PLAY_ON_DESKTOP: completeDesktopQuest,
     STREAM_ON_DESKTOP: completeStreamQuest,
-    PLAY_ACTIVITY: completeActivityQuest
+    PLAY_ACTIVITY: completeActivityQuest,
+    ACHIEVEMENT_IN_ACTIVITY: completeAchievementQuest
 };
 
 export default definePlugin({
@@ -112,7 +114,7 @@ export default definePlugin({
             // 1 = DESKTOP_ACCOUNT_PANEL_AREA, a valid QuestContentPlacement (the
             // enum is 0-5), matching what the client sends when accepting a
             // quest from the desktop quest bar
-            let result: { type: string } | undefined;
+            let result: { type: string; } | undefined;
             try {
                 result = await enrollQuest(quest.id, 1);
             } catch (error) {
@@ -170,7 +172,7 @@ export default definePlugin({
         }
 
         const taskApplication = getTaskApplication(quest, taskName);
-        const requiresApplication = HEARTBEAT_QUEST_TASKS.has(taskName);
+        const requiresApplication = APPLICATION_QUEST_TASKS.has(taskName);
         if (requiresApplication && !taskApplication?.id) {
             console.error("[Quest] Application data missing:", {
                 questId: quest.id,
