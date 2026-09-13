@@ -1,0 +1,35 @@
+.vc-dsa-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.vc-dsa-action {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px 2px;
+}
+
+.vc-dsa-action + .vc-dsa-action {
+    border-top: 2px solid var(--background-modifier-accent);
+}
+
+.vc-dsa-action-head {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.vc-dsa-row {
+    display: flex;
+    gap: 10px;
+}
+
+.vc-dsa-row > .vc-dsa-label {
+    flex: 0 0 130px;
+    color: var(--text-muted);
+}
+
+.vc-dsa-muted {
+    color: var(--text-muted);
+}
