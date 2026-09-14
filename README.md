@@ -4,6 +4,10 @@ Visit https://github.com/Loukious/Installer/releases/latest
 
 ## Fork additional plugins:
 
+- DashBeam
+    - File sharing via dashbeam's iroh wasm bridge — share files from the channel + menu as a ticket link; plugin users see an embed card with metadata and Accept/Decline, everyone else can open the link in any browser (not true P2P: transfers are relayed through dashbeam's infrastructure)
+- DSA Lookup
+    - Shows Discord's EU DSA transparency enforcement actions for a user on their profile (via dsa.discord.food), above the User Reviews section
 - FakeDeafen
     - You appear defeated to others, but can still hear them
 - QuestCompleter
