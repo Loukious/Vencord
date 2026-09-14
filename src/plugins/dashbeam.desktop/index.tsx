@@ -14,7 +14,7 @@ import definePlugin from "@utils/types";
 
 export default definePlugin({
     name: "DashBeam",
-    description: "P2P file sharing via dashbeam's iroh wasm bridge. Share files from the channel + menu as a ticket link — plugin users see an embed card with metadata and Accept/Decline, everyone else can open the link in any browser.",
+    description: "File sharing via dashbeam's iroh wasm bridge (not true P2P — transfers are relayed through dashbeam's infrastructure). Share files from the channel + menu as a ticket link — plugin users see an embed card with metadata and Accept/Decline, everyone else can open the link in any browser.",
     authors: [Devs.Loukious],
     dependencies: ["MessageAccessoriesAPI"],
     managedStyle,
