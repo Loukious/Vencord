@@ -9,7 +9,7 @@ import { createUploadProgressCard } from "@plugins/biggerFileUpload/progressCard
 import { settings, UPLOADER_OPTIONS } from "@plugins/biggerFileUpload/settings";
 import { insertTextIntoChatInputBox, sendMessage } from "@utils/discord";
 import { PluginNative } from "@utils/types";
-import { DraftType, SelectedChannelStore, showToast, Toasts, UploadManager } from "@webpack/common";
+import { DraftType, SelectedChannelStore, showToast, UploadManager } from "@webpack/common";
 
 const Native = VencordNative.pluginHelpers.BiggerFileUpload as PluginNative<typeof import("@plugins/biggerFileUpload/native")>;
 
@@ -28,7 +28,7 @@ function reportUploadError(channelId: string, uploader: string, reason: unknown)
     // The user pressed Cancel — the abort error arrives here like any other
     // failure, but it isn't one; skip the chat message and the failure toast
     if (/upload cancelled/i.test(detail)) {
-        showToast("Upload cancelled", Toasts.Type.MESSAGE);
+        showToast("Upload cancelled");
         UploadManager.clearAll(channelId, DraftType.SlashCommand);
         return;
     }
@@ -50,7 +50,7 @@ function reportUploadError(channelId: string, uploader: string, reason: unknown)
     sendBotMessage(channelId, {
         content: `**Unable to upload file to ${uploader}.**\n-# ${excerpt}${serviceHint}${networkHint}`
     });
-    showToast("File Upload Failed", Toasts.Type.FAILURE);
+    showToast("File Upload Failed", "failure");
 }
 
 function sendTextToChat(text: string) {
@@ -78,7 +78,7 @@ async function uploadFileToGofile(file: File, channelId: string) {
         if (uploadResult?.status === "ok") {
             const { downloadPage } = uploadResult.data;
             setTimeout(() => sendTextToChat(`${downloadPage} `), 10);
-            showToast("File Successfully Uploaded!", Toasts.Type.SUCCESS);
+            showToast("File Successfully Uploaded!", "success");
         } else {
             const message = uploadResult?.data?.message ?? uploadResult?.data?.error ?? uploadResult?.error ?? null;
             reportUploadError(channelId, "GoFile", message ? `${uploadResult?.status ?? "error"}: ${message}` : uploadResult);
@@ -126,7 +126,7 @@ async function uploadFileToCatbox(file: File, channelId: string, temporary: bool
             }
 
             setTimeout(() => sendTextToChat(finalUrl), 10);
-            showToast("File Successfully Uploaded!", Toasts.Type.SUCCESS);
+            showToast("File Successfully Uploaded!", "success");
         } else {
             // Catbox reports failures as plain text ("You are banned...", etc.)
             reportUploadError(channelId, temporary ? "Litterbox" : "Catbox", uploadResult);
@@ -158,7 +158,7 @@ async function uploadFileToFileDitch(file: File, channelId: string) {
             }
 
             setTimeout(() => sendTextToChat(`${finalUrl} `), 10);
-            showToast("File Successfully Uploaded!", Toasts.Type.SUCCESS);
+            showToast("File Successfully Uploaded!", "success");
         } else {
             reportUploadError(channelId, "FileDitch", uploadResult?.error ?? uploadResult);
         }
@@ -193,7 +193,7 @@ async function uploadFileCustom(file: File, channelId: string) {
             }
 
             setTimeout(() => sendTextToChat(`${finalUrlModified} `), 10);
-            showToast("File Successfully Uploaded!", Toasts.Type.SUCCESS);
+            showToast("File Successfully Uploaded!", "success");
             UploadManager.clearAll(channelId, DraftType.SlashCommand);
         } else {
             reportUploadError(channelId, "Custom", finalUrl ? `Uploader did not return a URL (got: ${finalUrl.slice(0, 200)})` : "Uploader did not return a URL");

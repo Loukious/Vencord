@@ -19,7 +19,7 @@
 import { MANUAL_HEARTBEAT_TERMINAL_TASKS } from "@plugins/questCompleter/constants";
 import { getQuestById, isQuestExpired, isQuestUserStatusCompleted, sendQuestHeartbeat } from "@plugins/questCompleter/quests";
 import type { RunningQuest } from "@plugins/questCompleter/types";
-import { showToast, Toasts, useEffect, useState } from "@webpack/common";
+import { showToast, useEffect, useState } from "@webpack/common";
 
 export const runningQuests = new Map<string, RunningQuest>();
 const runningQuestListeners = new Set<() => void>();
@@ -106,5 +106,5 @@ export function stopQuest(questId: string) {
     const questData = endQuest(questId);
     if (!questData) return;
 
-    showToast(`Stopped quest: ${questData.questName}`, Toasts.Type.MESSAGE);
+    showToast(`Stopped quest: ${questData.questName}`);
 }

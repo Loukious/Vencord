@@ -13,7 +13,7 @@ import { Margins } from "@components/margins";
 import { Paragraph } from "@components/Paragraph";
 import { Switch } from "@components/Switch";
 import { applyAndLogPatches, Native, revertAndLogPatches, settings } from "@plugins/voicePatcher.desktop/index";
-import { React, showToast, TextArea, TextInput, Toasts } from "@webpack/common";
+import { React, showToast, TextArea, TextInput } from "@webpack/common";
 
 export default function VoicePatcherSettings() {
     const [originalPatches, setOriginalPatches] = React.useState<{ name: string, content: string; }[]>([]);
@@ -165,12 +165,12 @@ export default function VoicePatcherSettings() {
                                 settings.store.customPatches || "[]"
                             ).then(result => {
                                 if (result.error) {
-                                    showToast("Failed: " + result.error, Toasts.Type.FAILURE);
+                                    showToast("Failed: " + result.error, "failure");
                                 } else {
-                                    showToast("Patch state reconciled successfully.", Toasts.Type.SUCCESS);
+                                    showToast("Patch state reconciled successfully.", "success");
                                 }
                             }).catch(e => {
-                                showToast("Exception: " + String(e), Toasts.Type.FAILURE);
+                                showToast("Exception: " + String(e), "failure");
                             });
                         }}
                     >
@@ -184,13 +184,13 @@ export default function VoicePatcherSettings() {
                                 if (result.error || (result.failed ?? 0) > 0) {
                                     showToast(
                                         result.error ? "Failed: " + result.error : `Failed to revert ${result.failed} patch(es).`,
-                                        Toasts.Type.FAILURE
+                                        "failure"
                                     );
                                 } else {
-                                    showToast("All tracked patches reverted.", Toasts.Type.SUCCESS);
+                                    showToast("All tracked patches reverted.", "success");
                                 }
                             }).catch(e => {
-                                showToast("Exception: " + String(e), Toasts.Type.FAILURE);
+                                showToast("Exception: " + String(e), "failure");
                             });
                         }}
                     >

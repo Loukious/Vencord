@@ -30,7 +30,7 @@ import type { QuestCompletionContext, QuestTaskName, RunningQuest } from "@plugi
 import { completeVideoQuest } from "@plugins/questCompleter/videoQuest";
 import { Devs } from "@utils/constants";
 import definePlugin from "@utils/types";
-import { showToast, Toasts, VoiceStateStore } from "@webpack/common";
+import { showToast, VoiceStateStore } from "@webpack/common";
 
 const questCompleters: Record<QuestTaskName, (context: QuestCompletionContext) => Promise<void> | void> = {
     WATCH_VIDEO: completeVideoQuest,
@@ -144,7 +144,7 @@ export default definePlugin({
 
         try {
             if (taskName === "STREAM_ON_DESKTOP" && !isApp) {
-                showToast("Desktop app required for streaming quests!", Toasts.Type.FAILURE);
+                showToast("Desktop app required for streaming quests!", "failure");
                 return;
             }
 
@@ -180,7 +180,7 @@ export default definePlugin({
                 task: quest.config.taskConfigV2.tasks[taskName]
             });
 
-            showToast("This quest does not contain application data!", Toasts.Type.FAILURE);
+            showToast("This quest does not contain application data!", "failure");
             return;
         }
 
@@ -227,7 +227,7 @@ export default definePlugin({
             showQuestNotification
         };
 
-        showToast(`Starting quest: ${questName}`, Toasts.Type.SUCCESS);
+        showToast(`Starting quest: ${questName}`, "success");
         void runQuestStep(context, () => questCompleters[taskName](context));
     }
 });

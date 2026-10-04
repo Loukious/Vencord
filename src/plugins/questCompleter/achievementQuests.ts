@@ -32,7 +32,7 @@ import { isQuestRunning } from "@plugins/questCompleter/state";
 import type { QuestCompletionContext } from "@plugins/questCompleter/types";
 import { PluginNative } from "@utils/types";
 import { waitFor } from "@webpack";
-import { RestAPI, showToast, Toasts } from "@webpack/common";
+import { RestAPI, showToast } from "@webpack/common";
 
 const Native = VencordNative.pluginHelpers?.QuestCompleter as PluginNative<typeof import("./native")>;
 
@@ -301,7 +301,7 @@ export async function completeAchievementQuest(context: QuestCompletionContext) 
 
         let code = codeResult.status === "fulfilled" ? codeResult.value : null;
         if (!code) {
-            showToast("Accept the authorization popup to allow the activity...", Toasts.Type.MESSAGE);
+            showToast("Accept the authorization popup to allow the activity...");
             code = await getConsentAuthCode(applicationId);
             if (!isQuestRunning(quest.id)) return;
         }

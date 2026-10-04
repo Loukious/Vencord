@@ -19,7 +19,7 @@
 import { QUEST_ERROR_MESSAGES } from "@plugins/questCompleter/constants";
 import { endQuest, isQuestRunning } from "@plugins/questCompleter/state";
 import type { QuestCompletionContext } from "@plugins/questCompleter/types";
-import { showToast, Toasts } from "@webpack/common";
+import { showToast } from "@webpack/common";
 
 function getQuestErrorMessage(context: QuestCompletionContext, error: unknown) {
     if (error instanceof Error && error.message) return error.message;
@@ -38,7 +38,7 @@ export function failQuest(context: QuestCompletionContext, error: unknown) {
     if (!endQuest(context.quest.id)) return;
 
     console.error(`[Quest] ${context.taskName} failed:`, error);
-    showToast(getQuestErrorMessage(context, error), Toasts.Type.FAILURE);
+    showToast(getQuestErrorMessage(context, error), "failure");
 }
 
 export async function runQuestStep(context: QuestCompletionContext, step: () => Promise<void> | void) {

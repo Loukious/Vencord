@@ -8,7 +8,7 @@ import { createTransferProgressCard, formatBytes, TransferProgressCard } from "@
 import wasmInit, { cancel_receive, fetch_ticket_metadata, receive_file, send_file, set_event_callback, stop_sharing } from "@plugins/dashbeam.desktop/wasm/wasm_bridge.js";
 import { sendMessage } from "@utils/discord";
 import { PluginNative } from "@utils/types";
-import { showToast, Toasts, UserStore } from "@webpack/common";
+import { showToast, UserStore } from "@webpack/common";
 
 const Native = VencordNative.pluginHelpers.DashBeam as PluginNative<typeof import("@plugins/dashbeam.desktop/native")>;
 
@@ -67,7 +67,7 @@ function checkClaimedSizeMismatch(actualTotal: number) {
     if (claimedSizeForInbound == null || sizeMismatchWarned || actualTotal <= 0) return;
     if (actualTotal > claimedSizeForInbound * 1.25 + 65536) {
         sizeMismatchWarned = true;
-        showToast(`File is actually ${formatBytes(actualTotal)} — the claimed size was ${formatBytes(claimedSizeForInbound)}. Cancel if this wasn't expected.`, Toasts.Type.FAILURE);
+        showToast(`File is actually ${formatBytes(actualTotal)} — the claimed size was ${formatBytes(claimedSizeForInbound)}. Cancel if this wasn't expected.`, "failure");
     }
 }
 
@@ -110,12 +110,12 @@ function routeEvent(eventName: string, payload?: string) {
         case "transfer-completed":
             outboundCard?.close();
             outboundCard = null;
-            showToast("DashBeam transfer completed", Toasts.Type.SUCCESS);
+            showToast("DashBeam transfer completed", "success");
             break;
         case "transfer-failed":
             outboundCard?.close();
             outboundCard = null;
-            showToast("DashBeam transfer failed", Toasts.Type.FAILURE);
+            showToast("DashBeam transfer failed", "failure");
             break;
         case "receive-completed":
             // receiveFile's own resolution closes the card — this is just a
@@ -148,12 +148,12 @@ export function ensureWasm() {
 // would silently kill the first ticket
 export async function shareFile(file: File, channelId: string) {
     if (activeShare) {
-        showToast(`Already sharing "${activeShare.fileName}" — stop it first (Stop button on its card)`, Toasts.Type.FAILURE);
+        showToast(`Already sharing "${activeShare.fileName}" — stop it first (Stop button on its card)`, "failure");
         return;
     }
 
     try {
-        showToast("Starting DashBeam share…", Toasts.Type.MESSAGE);
+        showToast("Starting DashBeam share…");
         await ensureWasm();
 
         const bytes = new Uint8Array(await file.arrayBuffer());
@@ -172,10 +172,10 @@ export async function shareFile(file: File, channelId: string) {
         // users and browser users alike) — the embed card replaces it
         const link = `<${RECEIVE_LINK_BASE}?ticket=${encodeURIComponent(result.ticket)}>`;
         await sendMessage(channelId, { content: link });
-        showToast(`Sharing "${file.name}" — link sent`, Toasts.Type.SUCCESS);
+        showToast(`Sharing "${file.name}" — link sent`, "success");
     } catch (error) {
         console.error("[DashBeam] send failed:", error);
-        showToast(`DashBeam send failed: ${error instanceof Error ? error.message : String(error)}`, Toasts.Type.FAILURE);
+        showToast(`DashBeam send failed: ${error instanceof Error ? error.message : String(error)}`, "failure");
     }
 }
 
@@ -213,7 +213,7 @@ export async function acceptTicket(ticket: string): Promise<AcceptResult> {
 
         inboundCard.close();
         inboundCard = null;
-        showToast(`Received ${files.length} file(s) via DashBeam`, Toasts.Type.SUCCESS);
+        showToast(`Received ${files.length} file(s) via DashBeam`, "success");
         return { kind: "success", files, bytesList };
     } catch (error) {
         console.error("[DashBeam] receive failed:", error);
@@ -222,10 +222,10 @@ export async function acceptTicket(ticket: string): Promise<AcceptResult> {
         inboundCard?.close();
         inboundCard = null;
         if (cancelled) {
-            showToast("Download cancelled", Toasts.Type.MESSAGE);
+            showToast("Download cancelled");
             return { kind: "cancelled" };
         }
-        showToast(`DashBeam receive failed: ${message}`, Toasts.Type.FAILURE);
+        showToast(`DashBeam receive failed: ${message}`, "failure");
         return { kind: "failed" };
     }
 }

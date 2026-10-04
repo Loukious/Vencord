@@ -14,7 +14,7 @@ import { classes } from "@utils/misc";
 import { LazyComponent } from "@utils/react";
 import { Guild, RenderModalProps } from "@vencord/discord-types";
 import { find, findByPropsLazy } from "@webpack";
-import { Clickable, GuildStore, Modal, openModal, PermissionsBits, PermissionStore, Popout, SearchableSelect, showToast, TextInput, Toasts, useMemo, useRef, UserStore, useState } from "@webpack/common";
+import { Clickable, GuildStore, Modal, openModal, PermissionsBits, PermissionStore, Popout, SearchableSelect, showToast, TextInput, useMemo, useRef, UserStore, useState } from "@webpack/common";
 import { HtmlHTMLAttributes } from "react";
 
 export function openCloneSoundModal(item) {
@@ -78,13 +78,13 @@ export function CloneSoundModal({ item, modalProps }: { item: SoundEvent, modalP
         fetch(`https://cdn.discordapp.com/soundboard-sounds/${item.soundId}`).then(function (response) {
             if (!response.body) {
                 setLoadingButton(false);
-                showToast("Error fetching the sound", Toasts.Type.FAILURE);
+                showToast("Error fetching the sound", "failure");
                 return;
             }
             response.body.getReader().read().then(function (result) {
                 if (!result.value) {
                     setLoadingButton(false);
-                    showToast("Error reading the sound content", Toasts.Type.FAILURE);
+                    showToast("Error reading the sound content", "failure");
                     return;
                 }
                 return btoa(String.fromCharCode(...result.value));
@@ -97,17 +97,17 @@ export function CloneSoundModal({ item, modalProps }: { item: SoundEvent, modalP
                     ...(soundEmoji.id ? { emojiId: soundEmoji.id } : { emojiName: soundEmoji.surrogates }),
                     volume: 1
                 }).then(() => {
-                    showToast(`Sound added to ${selectedGuild?.name}`, Toasts.Type.SUCCESS);
+                    showToast(`Sound added to ${selectedGuild?.name}`, "success");
                     modalProps.onClose();
                 }).catch(() => {
                     setLoadingButton(false);
-                    showToast("Error while adding sound", Toasts.Type.FAILURE);
+                    showToast("Error while adding sound", "failure");
                 });
 
             });
         }).catch(() => {
             setLoadingButton(false);
-            showToast("Error fetching the sound", Toasts.Type.FAILURE);
+            showToast("Error fetching the sound", "failure");
         });
     }
 
