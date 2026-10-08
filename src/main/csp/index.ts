@@ -71,9 +71,10 @@ export const CspPolicies: PolicyMap = {
     "ottsy.weilbyte.dev": ConnectSrc, // TikTok TTS API
     "dsa.discord.food": ConnectSrc, // DSA Lookup API
 
-    // Tenor, used by TenorSearch plugin and some themes
+    // Tenor & Giphy, used by GifProviderSwitcher plugin and some themes
     "*.tenor.com": ImageAndMediaSrc,
     "*.tenor.co": ImageAndMediaSrc,
+    "*.giphy.com": ImageAndMediaSrc,
 };
 
 const findHeader = (headers: PolicyMap, headerName: Lowercase<string>) => {
