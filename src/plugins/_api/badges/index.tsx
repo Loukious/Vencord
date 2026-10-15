@@ -142,7 +142,7 @@ export default definePlugin({
     toolboxActions: {
         async "Refetch Badges"() {
             await loadBadges(true);
-            showToast("Successfully refetched badges!", "success");
+            showToast({ text: "Successfully refetched badges!", variant: "success" });
         }
     },
 
