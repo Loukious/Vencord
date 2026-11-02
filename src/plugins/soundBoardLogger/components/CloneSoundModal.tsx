@@ -5,7 +5,7 @@
  */
 
 import { Flex } from "@components/Flex";
-import { HeadingTertiary } from "@components/Heading";
+import { Heading } from "@components/Heading";
 import { Paragraph } from "@components/Paragraph";
 import { Text } from "@components/Text";
 import { cl, getEmojiUrl, getSoundName, SoundEvent } from "@plugins/soundBoardLogger/utils";
@@ -123,12 +123,12 @@ export function CloneSoundModal({ item, modalProps }: { item: SoundEvent, modalP
         }]}
     >
         <div>
-            <HeadingTertiary className={Margins.top16}>Cloning Sound</HeadingTertiary>
+            <Heading tag="h4" className={classes(Margins.top16, Margins.bottom8)}>Cloning Sound</Heading>
             <CustomInput style={{ display: "flex", flexDirection: "row", gap: "10px", alignItems: "center" }} className={Margins.bottom16}>
                 <img src={getEmojiUrl(item.emoji)} width="24" height="24" />
                 <Text>{getSoundName(item.soundId)}</Text>
             </CustomInput>
-            <HeadingTertiary aria-required="true">Add to server:</HeadingTertiary>
+            <Heading tag="h4" className={Margins.bottom8} aria-required="true">Add to server:</Heading>
             <SearchableSelect
                 options={
                     ownedGuilds.map(guild => ({
@@ -154,11 +154,11 @@ export function CloneSoundModal({ item, modalProps }: { item: SoundEvent, modalP
             />
             <Flex flexDirection="row" style={{ gap: "10px", justifyContent: "space-between" }} className={classes(Margins.top16, Margins.bottom16)}>
                 <div style={{ flex: 1 }}>
-                    <HeadingTertiary aria-required="true">Sound Name</HeadingTertiary>
+                    <Heading tag="h4" className={Margins.bottom8} aria-required="true">Sound Name</Heading>
                     <TextInput value={soundName} onChange={v => setSoundName(v)} placeholder="Sound Name" />
                 </div>
                 <div style={{ flex: 1 }}>
-                    <HeadingTertiary>Related Emoji</HeadingTertiary>
+                    <Heading tag="h4" className={Margins.bottom8}>Related Emoji</Heading>
                     <Popout
                         position="bottom"
                         align="right"
