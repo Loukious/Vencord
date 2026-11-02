@@ -40,10 +40,8 @@ const settings = definePluginSettings({
 });
 
 function Watching({ userIds, guildId }: WatchingProps): JSX.Element {
-    // Missing Users happen when UserStore.getUser(id) returns null
-    // The client should automatically cache spectators, so this might not be possible but it's better to be sure just in case
-    let missingUsers = 0;
-    const users = userIds.map(id => UserStore.getUser(id)).filter(user => Boolean(user) ? true : (missingUsers += 1, false));
+    const users = useStateFromStores([UserStore], () => userIds.map(id => UserStore.getUser(id)).filter(Boolean), [userIds]);
+    const missingUsers = userIds.length - users.length;
     return (
         <div className={cl("content")}>
             {userIds.length ?
@@ -66,6 +64,15 @@ function Watching({ userIds, guildId }: WatchingProps): JSX.Element {
 
 const ApplicationStreamingStore = findStoreLazy("ApplicationStreamingStore");
 
+function useStreamViewers() {
+    return useStateFromStores([ApplicationStreamingStore, UserStore], () => {
+        const stream = ApplicationStreamingStore.getCurrentUserActiveStream();
+        const userIds: string[] = stream ? ApplicationStreamingStore.getViewerIds(stream) : [];
+        const users = userIds.map(id => UserStore.getUser(id)).filter(Boolean);
+        return { stream, userIds, users };
+    });
+}
+
 const UserSummaryItem = findComponentByCodeLazy("defaultRenderUser", "showDefaultAvatarsForNullUsers");
 const ActivityPanelStyles = findCssClassesLazy("activityPanel");
 const AvatarStyles = findCssClassesLazy("moreUsers", "clickableAvatar", "avatar");
@@ -86,14 +93,9 @@ export default definePlugin({
                 replace: "jsx)($self.component({OriginalComponent:$1}),{mask:"
             }
         },
-        { // New panel patch
-            // The activity panel was rewritten from a class component (whose
-            // renderVoicePanelIntroduction method this used to anchor on) into
-            // a function component; it now renders a single outer div with a
-            // classnames() className and a popout ref, wrapping the status
-            // card, the panel buttons and the popovers
+        {
             predicate: () => settings.store.showPanel,
-            find: "AutoclippingAccountPanelCoachmark",
+            find: '"ActivityPanelGameCard"',
             replacement: {
                 match: /jsx\)\("div",\{className:(\i)\(\)\((\i)\.(\i),(\i)\),ref:(\i),/,
                 replace: "jsx)($self.WrapperComponent,{className:$1()($2.$3,$4),ref:$5,"
@@ -101,12 +103,10 @@ export default definePlugin({
         }
     ],
     WrapperComponent: ErrorBoundary.wrap(props => {
-        const stream = useStateFromStores([ApplicationStreamingStore], () => ApplicationStreamingStore.getCurrentUserActiveStream());
+        const { stream, userIds, users } = useStreamViewers();
         if (!stream) return <div {...props}>{props.children}</div>;
 
-        const userIds: string[] = ApplicationStreamingStore.getViewerIds(stream);
-        let missingUsers = 0;
-        const users = userIds.map(id => UserStore.getUser(id)).filter(user => Boolean(user) ? true : (missingUsers += 1, false));
+        const missingUsers = userIds.length - users.length;
 
         function renderMoreUsers(_label: string, count: number) {
             const sliced = users.slice(count - 1);
@@ -135,7 +135,7 @@ export default definePlugin({
                     div below keeps its border, separating it from Voice Connected) */}
                 <div {...props} style={{ ...props.style, borderBottom: "none" }}>{props.children}</div>
                 <div className={classes(cl("spectators_panel"), ActivityPanelStyles.activityPanel)}>
-                    {users.length ?
+                    {userIds.length ?
                         <>
                             <Heading tag="h3" style={{ marginTop: 0, marginBottom: 0, textTransform: "uppercase" }}>
                                 {getIntlMessage("SPECTATORS", { numViewers: userIds.length })}
@@ -170,13 +170,9 @@ export default definePlugin({
     }),
     component: function ({ OriginalComponent }) {
         return ErrorBoundary.wrap((props: any) => {
-            const stream = useStateFromStores(
-                [ApplicationStreamingStore],
-                () => ApplicationStreamingStore.getCurrentUserActiveStream()
-            );
+            const { stream, userIds } = useStreamViewers();
             if (!stream) return null;
-            const viewers = ApplicationStreamingStore.getViewerIds(stream);
-            return <Tooltip text={<Watching userIds={viewers} guildId={stream.guildId} />}>
+            return <Tooltip text={<Watching userIds={userIds} guildId={stream.guildId} />}>
                 {({ onMouseEnter, onMouseLeave }) => (
                     <div onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
                         <OriginalComponent {...props} />
