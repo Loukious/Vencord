@@ -307,7 +307,7 @@ export async function completeAchievementQuest(context: QuestCompletionContext) 
         }
 
         // Exchange the one-time code for the activity's own auth token
-        const exchange = await acfPost(applicationId, "/authorize", { code }, "", quest.id, referrer);
+        const exchange = await acfPost(applicationId, "/authorize", { code, quest_id: quest.id }, "", quest.id, referrer);
         if (!exchange?.token) {
             throw new Error(exchange?.message ?? "The activity did not return an auth token");
         }
@@ -328,7 +328,7 @@ export async function completeAchievementQuest(context: QuestCompletionContext) 
     for (let progress = startProgress + 1; progress <= target; progress++) {
         if (!isQuestRunning(quest.id)) return;
 
-        const payload = await acfPost(applicationId, "/quest/progress", { progress }, auth.token, quest.id, referrer);
+        const payload = await acfPost(applicationId, "/quest/progress", { progress, quest_id: quest.id }, auth.token, quest.id, referrer);
         if (payload?.status !== "ok") {
             throw new Error(payload?.message ?? "The activity rejected a progress update");
         }
