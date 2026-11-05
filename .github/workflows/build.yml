@@ -18,6 +18,7 @@ on:
     workflow_dispatch:
 env:
     FORCE_COLOR: true
+    plugins_changed: false
 permissions:
     contents: write
 
