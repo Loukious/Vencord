@@ -6,6 +6,7 @@
 
 import assert from "node:assert/strict";
 import { mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { basename, dirname, join, relative, resolve, sep } from "node:path";
 import { test } from "node:test";
@@ -13,7 +14,9 @@ import { test } from "node:test";
 import pathAlias from "eslint-plugin-path-alias";
 import { unzipSync } from "fflate";
 import ts from "typescript";
-import transformPathsModule from "typescript-transform-paths";
+
+// Load the transformer like ts-patch; its declarations reference unpublished development dependencies.
+const transformPaths = createRequire(import.meta.url)("typescript-transform-paths").default;
 
 test("path-alias linting preserves glob exceptions and the sibling-import patch", () => {
     function lintImport(value, exceptions, dynamic) {
@@ -66,7 +69,7 @@ test("declaration transforms rewrite aliases while honoring glob exclusions", t 
     });
     assert.deepEqual(ts.getPreEmitDiagnostics(program).map(d => ts.flattenDiagnosticMessageText(d.messageText, "\n")), []);
     const result = program.emit(undefined, undefined, undefined, true, {
-        afterDeclarations: [transformPathsModule.default(program, { exclude: ["**/excluded/**"] }, { ts })]
+        afterDeclarations: [transformPaths(program, { exclude: ["**/excluded/**"] }, { ts })]
     });
     assert.equal(result.emitSkipped, false);
     const output = readFileSync(join(root, "dist/index.d.ts"), "utf8");
