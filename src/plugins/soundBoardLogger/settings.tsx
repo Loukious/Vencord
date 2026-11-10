@@ -21,13 +21,11 @@ const settings = definePluginSettings({
             const [state, setState] = useState(`${value}`);
             const [shouldShowWarning, setShouldShowWarning] = useState(false);
             const [errorMessage, setErrorMessage] = useState<string | null>(null);
-            const [error, setError] = useState(false);
 
             function handleChange(newValue) {
                 const changed = Number(newValue);
 
                 if (Number.isNaN(changed) || changed % 1 !== 0 || changed < 0) {
-                    setError(true);
                     let errorMsg = "";
                     errorMsg += Number.isNaN(changed) ? "The value is not a number.\n" : "";
                     errorMsg += (changed % 1 !== 0) ? "The value can't be a decimal number.\n" : "";
@@ -35,7 +33,6 @@ const settings = definePluginSettings({
                     setErrorMessage(errorMsg);
                     return;
                 } else {
-                    setError(false);
                     setErrorMessage(null);
                 }
 

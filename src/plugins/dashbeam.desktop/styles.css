@@ -16,7 +16,9 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
-    transition: opacity 0.3s ease, transform 0.3s ease;
+    transition:
+        opacity 0.3s ease,
+        transform 0.3s ease;
 }
 
 .db-progress-card.db-closing {

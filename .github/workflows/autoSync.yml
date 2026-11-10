@@ -3,8 +3,14 @@ name: "Upstream Sync"
 on:
     schedule:
         - cron: "0 0 * * *"
+    workflow_dispatch:
 
-    workflow_dispatch: # click the button on Github repo!
+permissions:
+    contents: write
+
+concurrency:
+    group: upstream-sync
+    cancel-in-progress: false
 
 jobs:
     sync_latest_from_upstream:
@@ -12,41 +18,51 @@ jobs:
         name: Sync latest commits from upstream repo
 
         steps:
-            # REQUIRED step
-            # Step 1: run a standard checkout action, provided by github
             - name: Checkout target repo
-              uses: actions/checkout@v3
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
-                  # optional: set the branch to checkout,
-                  # sync action checks out your 'target_sync_branch' anyway
                   ref: main
-                  # REQUIRED if your upstream repo is private (see wiki)
-                  persist-credentials: false
+                  fetch-depth: 0
 
-            # REQUIRED step
-            # Step 2: run the sync action
-            - name: Sync upstream changes
-              id: sync
-              uses: aormsby/Fork-Sync-With-Upstream-action@v3.4
+            - name: Setup pnpm
+              uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
+            - name: Use Node.js
+              uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
               with:
-                  target_sync_branch: main
-                  # REQUIRED 'target_repo_token' exactly like this!
-                  target_repo_token: ${{ secrets.GITHUB_TOKEN }}
-                  upstream_sync_branch: main
-                  upstream_sync_repo: Vendicated/Vencord
-                  upstream_repo_access_token: ${{ secrets.UPSTREAM_REPO_SECRET }}
+                  node-version: 24
+                  cache: "pnpm"
 
-                  # Set test_mode true to run tests instead of the true action!!
-                  test_mode: false
+            - name: Merge upstream
+              id: merge
+              run: |
+                  git config user.name "github-actions[bot]"
+                  git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+                  git remote add upstream https://github.com/Vendicated/Vencord.git
+                  git fetch upstream main
+                  node scripts/mergeUpstream.mjs
+                  if git rev-parse --verify -q MERGE_HEAD > /dev/null; then
+                      echo "changed=true" >> "$GITHUB_OUTPUT"
+                  fi
 
-            # Step 3: Display a sample message based on the sync output var 'has_new_commits'
-            - name: New commits found
-              if: steps.sync.outputs.has_new_commits == 'true'
-              run: echo "New commits were found to sync."
+            - name: Install merged dependencies
+              if: steps.merge.outputs.changed == 'true'
+              run: pnpm install --frozen-lockfile
 
-            - name: No new commits
-              if: steps.sync.outputs.has_new_commits == 'false'
-              run: echo "There were no new commits."
+            - name: Validate merged tree
+              if: steps.merge.outputs.changed == 'true'
+              run: |
+                  node --test scripts/mergeUpstream.test.mjs
+                  pnpm test:ts
+                  pnpm build --dev
+                  pnpm buildStandalone --dev
+                  pnpm buildWebStandalone --dev
+                  pnpm lint
+                  pnpm fmt:check
+                  pnpm generatePluginJson
 
-            - name: Show value of 'has_new_commits'
-              run: echo ${{ steps.sync.outputs.has_new_commits }}
+            - name: Commit and push validated merge
+              if: steps.merge.outputs.changed == 'true'
+              run: |
+                  git commit --no-edit
+                  git push origin HEAD:main

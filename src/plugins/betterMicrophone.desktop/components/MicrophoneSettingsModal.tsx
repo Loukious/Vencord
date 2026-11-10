@@ -68,18 +68,8 @@ export const MicrophoneSettingsModal = (props: MicrophoneSettingsModalProps) => 
         currentProfile,
         simpleMode,
         setSimpleMode,
-        deleteProfile,
-        duplicateProfile,
-        getCurrentProfile,
-        getDefaultProfiles,
-        getProfile,
-        getProfiles,
-        isCurrentProfileADefaultProfile,
-        profiles,
-        saveProfile,
         setChannels,
         setChannelsEnabled,
-        setCurrentProfile,
         setFreq,
         setFreqEnabled,
         setPacsize,
@@ -91,7 +81,6 @@ export const MicrophoneSettingsModal = (props: MicrophoneSettingsModalProps) => 
     } = microphoneStore.use();
 
     const {
-        name,
         channels,
         channelsEnabled,
         freq,

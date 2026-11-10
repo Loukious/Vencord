@@ -81,7 +81,6 @@ export function getStreamParameters(connection: types.Connection, get: Profilabl
         framerateEnabled,
         height,
         resolutionEnabled,
-        videoBitrate,
         videoBitrateEnabled,
         width,
     } = currentProfile;
@@ -146,7 +145,6 @@ export function getReplaceableVideoTransportationOptions(connection: types.Conne
         keyframeInterval,
         keyframeIntervalEnabled,
         resolutionEnabled,
-        videoBitrate,
         videoBitrateEnabled,
         videoCodec,
         videoCodecEnabled,
