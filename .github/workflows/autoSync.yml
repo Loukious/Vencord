@@ -52,11 +52,13 @@ jobs:
             - name: Validate merged tree
               if: steps.merge.outputs.changed == 'true'
               run: |
+                  pnpm audit
                   node --test scripts/mergeUpstream.test.mjs
                   pnpm test:ts
                   pnpm build --dev
                   pnpm buildStandalone --dev
                   pnpm buildWebStandalone --dev
+                  node --test scripts/dependencies.test.mjs
                   pnpm lint
                   pnpm fmt:check
                   pnpm generatePluginJson

@@ -72,8 +72,7 @@
         "type-fest": "catalog:",
         "typed-emitter": "^2.1.0",
         "typescript": "catalog:",
-        "typescript-transform-paths": "catalog:",
-        "zip-local": "catalog:"
+        "typescript-transform-paths": "catalog:"
     },
     "engines": {
         "node": ">=22"

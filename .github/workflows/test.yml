@@ -29,3 +29,9 @@ jobs:
 
             - name: Run Tests
               run: pnpm test
+
+            - name: Audit dependencies
+              run: pnpm audit
+
+            - name: Check dependency compatibility
+              run: node --test scripts/dependencies.test.mjs

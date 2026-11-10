@@ -2,7 +2,9 @@
 
 The daily `Upstream Sync` workflow merges `upstream/main`, lets the pinned pnpm
 version resolve lockfile conflicts, and validates the result before committing
-and pushing. Source, manifest, and workflow conflicts stop the sync for review.
+and pushing. Validation includes `pnpm audit` and dependency compatibility tests
+to prevent known vulnerabilities from being synced back in. Source, manifest,
+and workflow conflicts stop the sync for review.
 
 For a local sync, start with a clean working tree:
 

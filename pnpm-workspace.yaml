@@ -23,7 +23,7 @@ catalog:
     "gifenc": "github:mattdesl/gifenc#64842fca317b112a8590f8fef2bf3825da8f6fe3"
     "html-minifier-terser": "^7.2.0"
     "lodash": "^4.18.1"
-    "moment": "2.30.1"
+    "moment": "2.31.0"
     "oxfmt": "^0.75.0"
     "oxlint": "^1.90.0"
     "oxlint-tsgolint": "^7.0.2005"
@@ -37,11 +37,15 @@ catalog:
     "type-fest": "^5.10.0"
     "typescript": "^6.0.3"
     "typescript-transform-paths": "^3.5.6"
-    "zip-local": "^0.3.5"
     "@vencord/monaco-editor": "0.57.0-beta.4"
 
 patchedDependencies:
     eslint-plugin-path-alias@2.1.0: patches/eslint-plugin-path-alias@2.1.0.patch
+
+overrides:
+    # nanomatch's source-map parser has no compatible security update.
+    "eslint-plugin-path-alias>nanomatch": "npm:micromatch@^4.0.8"
+    "typescript-transform-paths>minimatch": "^11.0.5"
 
 strictPeerDependencies: false
 peerDependencyRules:
