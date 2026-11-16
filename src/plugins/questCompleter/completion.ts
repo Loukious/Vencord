@@ -17,7 +17,7 @@
 */
 
 import { QUEST_ERROR_MESSAGES } from "@plugins/questCompleter/constants";
-import { endQuest, isQuestRunning } from "@plugins/questCompleter/state";
+import { endQuest, isQuestRunning, runningQuests } from "@plugins/questCompleter/state";
 import type { QuestCompletionContext } from "@plugins/questCompleter/types";
 import { showToast } from "@webpack/common";
 
@@ -28,6 +28,7 @@ function getQuestErrorMessage(context: QuestCompletionContext, error: unknown) {
 }
 
 export function completeQuest(context: QuestCompletionContext) {
+    if (runningQuests.get(context.quest.id) !== context.runningQuest || context.runningQuest.cancelled) return;
     if (!endQuest(context.quest.id)) return;
 
     context.showQuestNotification("Completed", "Quest finished!");
@@ -35,6 +36,7 @@ export function completeQuest(context: QuestCompletionContext) {
 }
 
 export function failQuest(context: QuestCompletionContext, error: unknown) {
+    if (runningQuests.get(context.quest.id) !== context.runningQuest || context.runningQuest.cancelled) return;
     if (!endQuest(context.quest.id)) return;
 
     console.error(`[Quest] ${context.taskName} failed:`, error);
@@ -42,7 +44,7 @@ export function failQuest(context: QuestCompletionContext, error: unknown) {
 }
 
 export async function runQuestStep(context: QuestCompletionContext, step: () => Promise<void> | void) {
-    if (!isQuestRunning(context.quest.id)) return;
+    if (!isQuestRunning(context.quest.id) || runningQuests.get(context.quest.id) !== context.runningQuest) return;
 
     try {
         await step();

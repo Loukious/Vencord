@@ -16,8 +16,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { MANUAL_HEARTBEAT_TERMINAL_TASKS } from "@plugins/questCompleter/constants";
-import { getQuestById, isQuestExpired, isQuestUserStatusCompleted, sendQuestHeartbeat } from "@plugins/questCompleter/quests";
 import type { RunningQuest } from "@plugins/questCompleter/types";
 import { showToast, useEffect, useState } from "@webpack/common";
 
@@ -49,29 +47,6 @@ export function isQuestRunning(questId: string) {
     return runningQuests.has(questId) && !runningQuests.get(questId)?.cancelled;
 }
 
-// Mirrors the official scheduler's gate for sending a terminal heartbeat: only
-// for quests the plugin beats for itself, while still enrolled, unfinished and
-// unexpired. PLAY_ON_DESKTOP and STREAM_ON_DESKTOP terminal heartbeats come
-// from Discord's own scheduler when their spoofed activity is removed.
-export function shouldSendTerminalHeartbeat(runningQuest: RunningQuest) {
-    if (runningQuest.terminalHeartbeatSent || !MANUAL_HEARTBEAT_TERMINAL_TASKS.has(runningQuest.taskName)) return false;
-
-    const quest = getQuestById(runningQuest.questId);
-    return quest?.userStatus?.enrolledAt != null
-        && !isQuestUserStatusCompleted(quest.userStatus)
-        && !isQuestExpired(quest);
-}
-
-function sendTerminalHeartbeatForRunningQuest(runningQuest: RunningQuest) {
-    if (!shouldSendTerminalHeartbeat(runningQuest)) return false;
-
-    runningQuest.terminalHeartbeatSent = true;
-    void sendQuestHeartbeat({ questId: runningQuest.questId, terminal: true })
-        .catch(error => console.error("[Quest] Failed to send terminal heartbeat:", error));
-
-    return true;
-}
-
 export function endQuest(questId: string) {
     const questData = runningQuests.get(questId);
     if (!questData) return null;
@@ -92,8 +67,6 @@ export function endQuest(questId: string) {
             console.error("[Quest] Cleanup failed:", error);
         }
     }
-
-    sendTerminalHeartbeatForRunningQuest(questData);
 
     runningQuests.delete(questId);
     emitRunningQuestsChange();

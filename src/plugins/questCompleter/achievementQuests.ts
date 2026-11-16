@@ -17,6 +17,7 @@
 */
 
 import * as DataStore from "@api/DataStore";
+import { type ActivityProtocol, fetchActivityProtocol } from "@plugins/questCompleter/activityProtocol";
 import { completeQuest, failQuest, runQuestStep } from "@plugins/questCompleter/completion";
 import { QUEST_WATCH_INTERVAL_MS } from "@plugins/questCompleter/constants";
 import {
@@ -39,24 +40,21 @@ const Native = VencordNative.pluginHelpers?.QuestCompleter as PluginNative<typeo
 // Every embedded activity is served from its own {applicationId}.discordsays.com host
 const activityProxyOrigin = (applicationId: string) => `https://${applicationId}.discordsays.com`;
 
-// Real activities report objectives minutes apart while playing; the spoof
-// posts them seconds apart so a multi-objective quest still finishes quickly
+// The Arise client drops progress attempts less than five seconds apart.
 const ACHIEVEMENT_PROGRESS_INTERVAL_MS = 10 * 1000;
 
 // How often the watcher refetches the current quests — the acf backend reports
 // progress to Discord out of band, so the quest store only catches up on a refetch
 const QUEST_REFETCH_INTERVAL_MS = 30 * 1000;
 
-// The X-Auth-Token is a JWT valid for 30 days; treat it as stale a day early
+// Only reuse tokens with an explicit expiry, allowing a day for expiration.
 const ACTIVITY_TOKEN_EXPIRY_MARGIN_MS = 24 * 60 * 60 * 1000;
 
 // The OAuth consent modal lives in a lazily loaded chunk; give up on opening
 // it if nothing has pulled that chunk in after a while
 const OAUTH_MODAL_TIMEOUT_MS = 30 * 1000;
 
-// The scope set the activity's own SDK requests — the acf code exchange
-// expects a grant carrying all three, not just identify
-const ACTIVITY_OAUTH_SCOPES = ["identify", "applications.commands", "applications.entitlements"] as const;
+const ACTIVITY_OAUTH_SCOPES = ["identify"] as const;
 
 const DATA_STORE_KEY = "questCompleter_activityAuth";
 
@@ -82,7 +80,7 @@ async function storeActivityAuth(applicationId: string, auth: ActivityAuth) {
 
 function getTokenExpiry(token: string) {
     try {
-        // {access_token, id, iat, exp} — base64url JWT payload
+        // The activity token is distinct from the Discord OAuth access_token.
         const payload = JSON.parse(atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
         return typeof payload.exp === "number" ? payload.exp * 1000 : 0;
     } catch {
@@ -100,19 +98,13 @@ function extractCodeFromLocation(location: string | null | undefined) {
     }
 }
 
-/**
- * Mints a short-lived proxy ticket from Discord's API and folds it into the
- * instance URL the real activity iframe runs at. The acf backend keys its
- * per-instance env data off this Referer — without the ticket every acf
- * request fails with "Env data not found", even with a perfectly good OAuth
- * code — so a fresh one is minted per quest run.
- */
+// A fresh stateless ticket is required for each activity instance.
 async function mintActivityReferrer(applicationId: string): Promise<string> {
     let ticket: string | undefined;
     try {
         const response = await RestAPI.post({
             url: `/applications/${applicationId}/proxy-tickets`,
-            body: {}
+            body: { use_stateless_ticket: true }
         });
         ticket = response.body?.ticket;
     } catch (error: any) {
@@ -214,24 +206,15 @@ function getConsentAuthCode(applicationId: string): Promise<string> {
     });
 }
 
-/**
- * Posts to the activity's acf backend. Unlike every other request the plugin
- * makes this leaves Discord's API for the activity proxy, which the activity
- * normally calls from inside its own iframe. On the desktop app the request
- * goes through the plugin's native helper so it runs in the main process,
- * where fetch is not subject to CORS; web builds have no plugin helpers and
- * fall back to a direct renderer fetch, which can fail if that backend
- * rejects Discord's origin. Every call carries the instance Referer (proxy
- * ticket) and the quest id — the backend's env-data lookup keys off both.
- */
-async function acfPost(applicationId: string, path: string, body: any, authToken: string = "", questId?: string, referrer?: string) {
+// Desktop requests use the native helper because the activity proxy can reject renderer CORS.
+async function acfPost(applicationId: string, protocol: ActivityProtocol, path: string, body: any, authToken: string = "", questId?: string, referrer?: string) {
     const url = `${activityProxyOrigin(applicationId)}/.proxy/acf${path}`;
     const headers: Record<string, string> = {
         "Content-Type": "application/json",
-        // The SDK always sends both headers, even with an empty token on the
-        // code exchange itself
+        // ACF authorization includes an empty X-Auth-Token.
         "X-Auth-Token": authToken,
-        ...(questId ? { "X-Discord-Quest-ID": questId } : {}),
+        ...protocol.headers,
+        ...(protocol.questIdHeader && questId ? { "X-Discord-Quest-ID": questId } : {}),
         ...(referrer ? { "Referer": referrer } : {})
     };
 
@@ -249,7 +232,8 @@ async function acfPost(applicationId: string, path: string, body: any, authToken
         response = await fetch(url, {
             method: "POST",
             headers,
-            body: JSON.stringify(body)
+            body: JSON.stringify(body),
+            signal: AbortSignal.timeout(10 * 1000)
         });
     } catch (error) {
         console.error("[Quest] Activity proxy request failed:", error);
@@ -264,17 +248,7 @@ async function acfPost(applicationId: string, path: string, body: any, authToken
     return payload;
 }
 
-/**
- * ACHIEVEMENT_IN_ACTIVITY spoof ("finish X objectives in the activity"). The
- * official scheduler never heartbeats this task type — progress comes only
- * from the activity posting each completed objective to its acf backend, using
- * a token minted from an OAuth grant the user consented to. The plugin replays
- * exactly that: it obtains the grant through Discord's own OAuth popup (or
- * silently once the app is already authorized), exchanges the code for the
- * activity's X-Auth-Token — cached per activity, it is valid for 30 days — and
- * then posts the missing objectives one by one before watching the quest store
- * for the server's confirmation.
- */
+// Resolve each activity's current Arise client before making authenticated requests.
 export async function completeAchievementQuest(context: QuestCompletionContext) {
     const { quest, applicationId, runningQuest } = context;
 
@@ -284,7 +258,17 @@ export async function completeAchievementQuest(context: QuestCompletionContext) 
         throw new Error("Quest enrollment is not confirmed yet — please try again");
     }
 
+    const protocol = Native != null
+        ? await Native.getActivityProtocolNative(applicationId)
+        : await fetchActivityProtocol(applicationId, async url => {
+            const response = await fetch(url, { redirect: "error", signal: AbortSignal.timeout(10 * 1000) });
+            if (!response.ok) throw new Error(`Failed to load the activity client (${response.status})`);
+            return response.text();
+        });
+    if (!isQuestRunning(quest.id) || runningQuest.cancelled) return;
+
     let auth = await getCachedActivityAuth(applicationId);
+    if (!isQuestRunning(quest.id) || runningQuest.cancelled) return;
     let referrer: string;
 
     if (!auth) {
@@ -293,6 +277,7 @@ export async function completeAchievementQuest(context: QuestCompletionContext) 
             getSilentAuthCode(applicationId),
             mintActivityReferrer(applicationId)
         ]);
+        if (!isQuestRunning(quest.id) || runningQuest.cancelled) return;
 
         if (referrerResult.status === "rejected") {
             throw referrerResult.reason;
@@ -303,11 +288,15 @@ export async function completeAchievementQuest(context: QuestCompletionContext) 
         if (!code) {
             showToast({ text: "Accept the authorization popup to allow the activity..." });
             code = await getConsentAuthCode(applicationId);
-            if (!isQuestRunning(quest.id)) return;
+            if (!isQuestRunning(quest.id) || runningQuest.cancelled) return;
         }
 
         // Exchange the one-time code for the activity's own auth token
-        const exchange = await acfPost(applicationId, "/authorize", { code, quest_id: quest.id }, "", quest.id, referrer);
+        const authorization = protocol.authorizationHasActivityId
+            ? { code, activityId: applicationId }
+            : { code };
+        const exchange = await acfPost(applicationId, protocol, "/authorize", authorization, "", quest.id, referrer);
+        if (!isQuestRunning(quest.id) || runningQuest.cancelled) return;
         if (!exchange?.token) {
             throw new Error(exchange?.message ?? "The activity did not return an auth token");
         }
@@ -326,9 +315,10 @@ export async function completeAchievementQuest(context: QuestCompletionContext) 
     // Objectives are posted one at a time as cumulative counts, mirroring how
     // the activity reports each one as it happens
     for (let progress = startProgress + 1; progress <= target; progress++) {
-        if (!isQuestRunning(quest.id)) return;
+        if (!isQuestRunning(quest.id) || runningQuest.cancelled) return;
 
-        const payload = await acfPost(applicationId, "/quest/progress", { progress, quest_id: quest.id }, auth.token, quest.id, referrer);
+        const body = protocol.progressHasQuestId ? { progress, quest_id: quest.id } : { progress };
+        const payload = await acfPost(applicationId, protocol, "/quest/progress", body, auth.token, quest.id, referrer);
         if (payload?.status !== "ok") {
             throw new Error(payload?.message ?? "The activity rejected a progress update");
         }
@@ -338,13 +328,13 @@ export async function completeAchievementQuest(context: QuestCompletionContext) 
     }
 
     await fetchCurrentQuests();
-    if (!isQuestRunning(quest.id)) return;
+    if (!isQuestRunning(quest.id) || runningQuest.cancelled) return;
 
     let lastLoggedProgress = -1;
     let lastRefetchAt = Date.now();
 
     const watchForCompletion = () => {
-        if (!isQuestRunning(quest.id)) return;
+        if (!isQuestRunning(quest.id) || runningQuest.cancelled) return;
 
         const current = getQuestById(quest.id);
 

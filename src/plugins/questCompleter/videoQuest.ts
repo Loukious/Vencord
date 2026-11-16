@@ -59,10 +59,10 @@ export async function completeVideoQuest(context: QuestCompletionContext) {
     const saveProgress = async () => {
         if (!isQuestRunning(quest.id)) return;
 
-        // The official ended handler posts duration + 1s, overshooting the required target
+        // The ended request adds 1s, while media telemetry stays at the video duration.
         const isFinal = getCurrentProgress() >= secondsNeeded;
         const timestamp = isFinal
-            ? secondsNeeded + VIDEO_FINAL_TIMESTAMP_OVERSHOOT_SEC + Math.random()
+            ? secondsNeeded + VIDEO_FINAL_TIMESTAMP_OVERSHOOT_SEC
             : Math.max(getCurrentProgress(), lastSubmittedProgress);
 
         if (!isFinal && timestamp < nextPostAt) {
@@ -75,7 +75,7 @@ export async function completeVideoQuest(context: QuestCompletionContext) {
         if (!isQuestRunning(quest.id)) return;
 
         lastSubmittedProgress = timestamp;
-        analytics.trackProgressed(timestamp);
+        analytics.trackProgressed(getCurrentProgress());
 
         if (isQuestCompleted(context, response)) {
             console.log("[Quest] Server confirmed video completion.");

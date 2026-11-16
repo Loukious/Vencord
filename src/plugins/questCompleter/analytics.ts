@@ -19,8 +19,7 @@
 import { VIDEO_SEGMENT_EMIT_INTERVAL_MS, VIDEO_SEGMENT_MIN_DURATION_SEC } from "@plugins/questCompleter/constants";
 import { getQuestById, isQuestUserStatusCompleted } from "@plugins/questCompleter/quests";
 import type { QuestCompletionContext } from "@plugins/questCompleter/types";
-import { findStoreLazy, mapMangledModuleLazy } from "@webpack";
-import { RestAPI } from "@webpack/common";
+import { filters, findStoreLazy, mapMangledModuleLazy } from "@webpack";
 
 // Discord's trackQuestEvent helper enriches every event with quest_id, quest_type,
 // application_ids, quest_status and ad session ids before handing it to the science
@@ -33,6 +32,9 @@ const { av: trackQuestEventFn } = mapMangledModuleLazy("[Quest] AnalyticsUtils.t
     av: (m: any) => typeof m === "function" && Function.prototype.toString.call(m).includes("quest_type:")
 });
 const NetworkStore: any = findStoreLazy("NetworkStore");
+const { TrackedRestAPI } = mapMangledModuleLazy(["trackedActionData:", "request_method:"], {
+    TrackedRestAPI: filters.byProps("post", "delete")
+});
 
 // Event names from Discord's QuestAnalyticsEvents enum
 const QuestVideoAnalyticsEvents = {
@@ -62,16 +64,14 @@ export function buildVideoProgressTrackedActionData(questId: string, timestamp: 
     };
 }
 
-/**
- * Posts video progress the way Discord's action does, including the
- * trackedActionData the network layer reports for the request.
- */
+// The ordinary RestAPI ignores trackedActionData; Discord's tracked wrapper emits it.
 export function postVideoProgress(questId: string, timestamp: number) {
-    return RestAPI.post({
+    return TrackedRestAPI.post({
         url: `/quests/${questId}/video-progress`,
         body: { timestamp },
-        trackedActionData: buildVideoProgressTrackedActionData(questId, timestamp)
-    } as any);
+        trackedActionData: buildVideoProgressTrackedActionData(questId, timestamp),
+        rejectWithError: false
+    });
 }
 
 function trackQuestEvent(questId: string, event: string, properties: Record<string, unknown>) {
@@ -103,26 +103,17 @@ function getVideoAssetId(quest: any, taskName: string) {
 }
 
 export interface VideoQuestAnalyticsSession {
-    /** Emit a PROGRESSED event for a timestamp that was just posted to the API */
     trackProgressed(timestamp: number): void;
-    /** Mark the quest as completed so stop() skips the final progress re-post */
     markCompleted(): void;
-    /** Emit the final segment, PROGRESSED and MODAL_CLOSED events, like Discord's modal close handler */
     stop(): void;
 }
 
-/**
- * Emits the science event session Discord's video quest modal produces while
- * watching a video, so the spoofed video progress doesn't stand out as coming
- * from a client that never opened the modal.
- */
 export function startVideoQuestAnalytics(context: QuestCompletionContext, getCurrentVideoTime: () => number): VideoQuestAnalyticsSession {
     const { quest, secondsNeeded, taskName } = context;
     const videoSessionId = crypto.randomUUID();
     const videoAssetId = getVideoAssetId(quest, taskName);
-    // The video is slightly longer than the required watch time, which is what
-    // makes the official duration + 1s final post overshoot the target
-    const videoDuration = secondsNeeded + 2 + Math.random() * 8;
+    const videoDuration = secondsNeeded;
+    const loadingStartMs = performance.now();
 
     let stopped = false;
     let completed = false;
@@ -151,7 +142,7 @@ export function startVideoQuestAnalytics(context: QuestCompletionContext, getCur
     setTimeout(() => {
         if (stopped) return;
         emit(QuestVideoAnalyticsEvents.TIME_TO_FIRST_FRAME, {
-            duration_ms: Math.round(timeToFirstFrameMs),
+            duration_ms: performance.now() - loadingStartMs,
             video_session_id: videoSessionId,
             video_asset_id: videoAssetId,
             ...UNRESOLVED_HLS_INFO
@@ -162,7 +153,7 @@ export function startVideoQuestAnalytics(context: QuestCompletionContext, getCur
         emit(QuestVideoAnalyticsEvents.LOADING_ENDED, {
             video_asset_id: videoAssetId,
             network_connection_speed: getNetworkConnectionSpeed(),
-            duration: videoDuration,
+            duration: performance.now() - loadingStartMs,
             video_session_id: videoSessionId,
             ...UNRESOLVED_HLS_INFO
         });
@@ -205,10 +196,11 @@ export function startVideoQuestAnalytics(context: QuestCompletionContext, getCur
         trackProgressed(timestamp) {
             if (stopped) return;
 
-            maxTimestamp = Math.max(maxTimestamp, timestamp);
+            const videoTimestamp = Math.min(timestamp, videoDuration);
+            maxTimestamp = Math.max(maxTimestamp, videoTimestamp);
             emit(QuestVideoAnalyticsEvents.PROGRESSED, {
-                progress: getVideoProgressRatio(timestamp, videoDuration),
-                video_timestamp_seconds: timestamp,
+                progress: getVideoProgressRatio(videoTimestamp, videoDuration),
+                video_timestamp_seconds: videoTimestamp,
                 video_session_id: videoSessionId,
                 video_asset_id: videoAssetId,
                 ...UNRESOLVED_HLS_INFO
@@ -226,7 +218,7 @@ export function startVideoQuestAnalytics(context: QuestCompletionContext, getCur
             if (segmentTimer != null) clearTimeout(segmentTimer);
 
             const now = Date.now();
-            const finalSec = Math.max(maxTimestamp, getCurrentVideoTime());
+            const finalSec = Math.min(videoDuration, Math.max(maxTimestamp, getCurrentVideoTime()));
 
             // Flush the trailing segment if it is longer than 0.2s, like the segment watcher does
             if (finalSec - segmentStartSec > 0.2) {

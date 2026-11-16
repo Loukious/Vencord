@@ -16,13 +16,17 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-/**
- * Posts JSON to the activity proxy ({appId}.discordsays.com) from the main
- * process, where fetch is not subject to CORS. The .proxy/acf backend only
- * ever sees requests from inside the activity's own iframe, so whether it
- * allows Discord's origin is unknown — in the renderer those calls can fail,
- * here they cannot.
- */
+import { fetchActivityProtocol } from "@plugins/questCompleter/activityProtocol";
+
+export function getActivityProtocolNative(_: Electron.IpcMainInvokeEvent, applicationId: string) {
+    return fetchActivityProtocol(applicationId, async url => {
+        const response = await fetch(url, { redirect: "error", signal: AbortSignal.timeout(10 * 1000) });
+        if (!response.ok) throw new Error(`Failed to load the activity client (${response.status})`);
+        return response.text();
+    });
+}
+
+// Requests run in the main process to avoid the activity proxy's renderer CORS restrictions.
 export async function activityProxyPostNative(
     _: Electron.IpcMainInvokeEvent,
     url: string,
@@ -44,7 +48,8 @@ export async function activityProxyPostNative(
         method: "POST",
         headers,
         body: JSON.stringify(body),
-        redirect: "error"
+        redirect: "error",
+        signal: AbortSignal.timeout(10 * 1000)
     });
 
     return {

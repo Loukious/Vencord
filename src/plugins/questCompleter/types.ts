@@ -29,7 +29,6 @@ export interface RunningQuest {
     gameInstance?: any;
     progressTimeout?: ReturnType<typeof setTimeout>;
     cancelled?: boolean;
-    terminalHeartbeatSent?: boolean;
 }
 
 export interface QuestCompletionContext {

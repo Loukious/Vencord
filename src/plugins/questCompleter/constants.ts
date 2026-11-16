@@ -29,13 +29,6 @@ export type QuestTaskName = typeof QUEST_TASKS[number];
 // Tasks whose config references an application (taskApplication.id)
 export const APPLICATION_QUEST_TASKS = new Set<QuestTaskName>(["PLAY_ON_DESKTOP", "STREAM_ON_DESKTOP", "PLAY_ACTIVITY", "ACHIEVEMENT_IN_ACTIVITY"]);
 
-// Tasks whose terminal heartbeat the plugin sends itself. PLAY_ON_DESKTOP and
-// STREAM_ON_DESKTOP are deliberately absent: their fake game/stream metadata
-// makes Discord's own QuestProgressManager send every beat, and that scheduler
-// also owns the terminal heartbeat (it fires one when the spoofed activity is
-// removed while the quest is unfinished).
-export const MANUAL_HEARTBEAT_TERMINAL_TASKS = new Set<QuestTaskName>(["PLAY_ACTIVITY"]);
-
 export const QUEST_ERROR_MESSAGES: Record<QuestTaskName, string> = {
     WATCH_VIDEO: "Failed to update video progress",
     WATCH_VIDEO_ON_MOBILE: "Failed to update video progress",
@@ -44,13 +37,6 @@ export const QUEST_ERROR_MESSAGES: Record<QuestTaskName, string> = {
     PLAY_ACTIVITY: "Failed to update activity progress",
     ACHIEVEMENT_IN_ACTIVITY: "Failed to update activity objective progress"
 };
-
-export const HEARTBEAT_MAX_INTERVAL_MS = 60 * 1000;
-export const HEARTBEAT_FINAL_BUFFER_MS = 1000;
-
-// Near the target the official cadence collapses to ~1s per beat while the
-// server confirms the last seconds; give up if it never confirms completion
-export const HEARTBEAT_STALLED_BEAT_LIMIT = 5;
 
 // How often the desktop/stream quest watchers poll the quest store for
 // completion while Discord's own heartbeat scheduler does the beating

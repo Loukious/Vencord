@@ -17,27 +17,17 @@
 */
 
 import { completeQuest, failQuest, runQuestStep } from "@plugins/questCompleter/completion";
-import {
-    FLUX_EVENTS,
-    HEARTBEAT_FINAL_BUFFER_MS,
-    HEARTBEAT_MAX_INTERVAL_MS,
-    HEARTBEAT_STALLED_BEAT_LIMIT,
-    QUEST_WATCH_INTERVAL_MS
-} from "@plugins/questCompleter/constants";
+import { FLUX_EVENTS, QUEST_WATCH_INTERVAL_MS } from "@plugins/questCompleter/constants";
 import {
     ApplicationStreamingStore,
-    fetchCurrentQuests,
-    getLatestQuestProgress,
     getQuestById,
     getQuestProgress,
-    isQuestCompleted,
     isQuestExpired,
-    isQuestUserStatusCompleted,
-    sendQuestHeartbeat
+    isQuestUserStatusCompleted
 } from "@plugins/questCompleter/quests";
-import { isQuestRunning } from "@plugins/questCompleter/state";
+import { isQuestRunning, runningQuests } from "@plugins/questCompleter/state";
 import type { QuestCompletionContext } from "@plugins/questCompleter/types";
-import { findStoreLazy } from "@webpack";
+import { findByProps, findStoreLazy } from "@webpack";
 import { FluxDispatcher, RestAPI, VoiceStateStore } from "@webpack/common";
 
 const RunningGameStore: any = findStoreLazy("RunningGameStore");
@@ -45,6 +35,45 @@ const RunningGameStore: any = findStoreLazy("RunningGameStore");
 // Fake games that must survive native rebuilds of the running games list
 const persistentFakeGames = new Set<any>();
 let gameSurvivalInstalled = false;
+const activityQuests = new Map<string, QuestCompletionContext>();
+const streamMetadata = new Map<string, { id: string; pid: number; sourceName: null; }>();
+let activitySelector: (() => Map<string, any>) | undefined;
+let realActivitySelector: (() => Map<string, any>) | undefined;
+let streamMetadataGetter: (() => any) | undefined;
+let realStreamMetadata: (() => any) | undefined;
+
+function getQuestProgressManager() {
+    return findByProps("initiateHeartbeat", "getActivelyProgressingActivityQuests");
+}
+
+function spoofStreamMetadata(context: QuestCompletionContext) {
+    if (streamMetadata.size === 0) {
+        const original = realStreamMetadata = ApplicationStreamingStore.getStreamerActiveStreamMetadata;
+        streamMetadataGetter = function (this: any) {
+            try {
+                return Array.from(streamMetadata.values()).at(-1) ?? original.call(this);
+            } catch (error) {
+                console.error("[Quest] Failed to read stream metadata:", error);
+                return null;
+            }
+        };
+        ApplicationStreamingStore.getStreamerActiveStreamMetadata = streamMetadataGetter;
+    }
+
+    streamMetadata.set(context.quest.id, {
+        id: context.applicationId,
+        pid: Math.floor(Math.random() * 30000) + 1000,
+        sourceName: null
+    });
+
+    return () => {
+        streamMetadata.delete(context.quest.id);
+        if (streamMetadata.size === 0 && ApplicationStreamingStore.getStreamerActiveStreamMetadata === streamMetadataGetter) {
+            ApplicationStreamingStore.getStreamerActiveStreamMetadata = realStreamMetadata!;
+        }
+        getQuestProgressManager().syncHeartbeats(["STREAM_ON_DESKTOP"], "QUEST_COMPLETER_STREAM_METADATA");
+    };
+}
 
 /**
  * Keeps fake games alive when the native process observer rebuilds
@@ -93,15 +122,6 @@ function installGameSurvival() {
     };
 }
 
-// Mirrors the official calculateHeartbeatDurationMs: one beat per minute, or the
-// remaining time plus a 1s buffer once the quest is under a minute from done
-function calculateHeartbeatDurationMs(context: QuestCompletionContext, progressSeconds: number) {
-    const remainingMs = Math.max(0, (context.secondsNeeded - progressSeconds) * 1000);
-    return remainingMs <= HEARTBEAT_MAX_INTERVAL_MS
-        ? remainingMs + HEARTBEAT_FINAL_BUFFER_MS
-        : HEARTBEAT_MAX_INTERVAL_MS;
-}
-
 /**
  * Removes the fake game from RunningGameStore's live array and dispatches the
  * change. The store's RUNNING_GAMES_CHANGE handler ignores the action payload,
@@ -123,54 +143,6 @@ function removeFakeGame(fakeGame: any) {
         removed: [fakeGame],
         games: [...games]
     });
-}
-
-function scheduleNextHeartbeat(context: QuestCompletionContext, beat: () => Promise<void>, progressSeconds: number) {
-    context.runningQuest.progressTimeout = setTimeout(() => {
-        void runQuestStep(context, beat);
-    }, calculateHeartbeatDurationMs(context, progressSeconds));
-}
-
-/**
- * Heartbeat loop for the tasks the plugin still drives itself (activity quests).
- * Scheduling uses only server-confirmed progress from the quest store, exactly
- * like the official scheduler — there is no local progress clock. The terminal
- * heartbeat is never sent from here: officially it only fires when the activity
- * ends with the quest still unfinished, which maps to the user stopping the
- * quest (see shouldSendTerminalHeartbeat).
- */
-export async function runHeartbeatQuest(context: QuestCompletionContext, sendHeartbeat: () => Promise<any>) {
-    const { quest } = context;
-    let stalledBeats = 0;
-
-    const beat = async () => {
-        if (!isQuestRunning(quest.id)) return;
-
-        await sendHeartbeat();
-        if (!isQuestRunning(quest.id)) return;
-
-        if (isQuestCompleted(context)) {
-            completeQuest(context);
-            return;
-        }
-
-        const serverProgress = getLatestQuestProgress(context);
-
-        // Near the target the official cadence collapses to ~1s per beat while
-        // the server confirms the remaining seconds; bail out if it never does
-        if (serverProgress >= context.secondsNeeded) {
-            if (++stalledBeats >= HEARTBEAT_STALLED_BEAT_LIMIT) {
-                failQuest(context, new Error("Server is not counting quest heartbeats"));
-                return;
-            }
-        } else {
-            stalledBeats = 0;
-        }
-
-        scheduleNextHeartbeat(context, beat, serverProgress);
-    };
-
-    await beat();
 }
 
 /**
@@ -325,33 +297,9 @@ export async function completeDesktopQuest(context: QuestCompletionContext) {
     watchForCompletion();
 }
 
-/**
- * STREAM_ON_DESKTOP spoof, driven like a real stream: the streamer metadata
- * store is patched so Discord's own QuestProgressManager sees the active stream
- * as the quest's application, and a current-quests refetch triggers the
- * scheduler's sync. From then on the official scheduler sends every heartbeat
- * with the real stream key, and it stops beating (sending the terminal
- * heartbeat) once the stream ends or the channel empties. The plugin itself
- * never beats — it only watches the quest store.
- */
-export async function completeStreamQuest(context: QuestCompletionContext) {
-    const { quest, applicationId, runningQuest } = context;
-    const realFunc = ApplicationStreamingStore.getStreamerActiveStreamMetadata;
-
-    // Make the official scheduler match the active stream to the quest
-    ApplicationStreamingStore.getStreamerActiveStreamMetadata = () => ({
-        id: applicationId,
-        pid: Math.floor(Math.random() * 30000) + 1000,
-        sourceName: null
-    });
-
-    runningQuest.cleanup = () => {
-        // Restoring the real metadata makes the quest stop matching, which the
-        // scheduler notices on its next beat (or the next voice event) — it then
-        // terminates the quest and, while it is still enrolled and unfinished,
-        // sends the terminal heartbeat, exactly like ending the stream
-        ApplicationStreamingStore.getStreamerActiveStreamMetadata = realFunc;
-    };
+// Discord's manager owns stream heartbeats and terminates them when the spoof is removed.
+export function completeStreamQuest(context: QuestCompletionContext) {
+    const { quest, runningQuest } = context;
 
     // The official scheduler only beats for quests whose enrolledAt has reached
     // the quest store, so make sure enrollment is visible before spoofing
@@ -359,12 +307,12 @@ export async function completeStreamQuest(context: QuestCompletionContext) {
         throw new Error("Quest enrollment is not confirmed yet — please try again");
     }
 
+    // A stream represents one application; removing the newest quest resumes the previous one.
+    runningQuest.cleanup = spoofStreamMetadata(context);
+
     console.log(`[Quest] Spoofing stream metadata for "${context.applicationName}" — Discord's own scheduler will send the heartbeats.`);
 
-    // Officially the scheduler syncs stream quests on voice events; refetching
-    // the current quests through Discord's own action triggers the same sync
-    // immediately
-    await fetchCurrentQuests();
+    getQuestProgressManager().syncHeartbeats(["STREAM_ON_DESKTOP"], "QUEST_COMPLETER_STREAM_METADATA");
     if (!isQuestRunning(quest.id)) return;
 
     let lastLoggedProgress = -1;
@@ -407,10 +355,70 @@ export async function completeStreamQuest(context: QuestCompletionContext) {
     watchForCompletion();
 }
 
-export async function completeActivityQuest(context: QuestCompletionContext) {
-    const { quest, applicationId } = context;
+export function completeActivityQuest(context: QuestCompletionContext) {
+    const { quest, applicationId, runningQuest } = context;
+    if (!getQuestById(quest.id)?.userStatus?.enrolledAt) {
+        throw new Error("Quest enrollment is not confirmed yet — please try again");
+    }
 
-    const sendHeartbeat = () => sendQuestHeartbeat({ questId: quest.id, applicationId, terminal: false });
+    const manager = getQuestProgressManager();
+    if (activityQuests.size === 0) {
+        const original = realActivitySelector = manager.getActivelyProgressingActivityQuests;
+        activitySelector = function (this: any) {
+            let quests: Map<string, any> = new Map();
+            try {
+                quests = original.call(this);
+                for (const context of activityQuests.values()) {
+                    const current = getQuestById(context.quest.id);
+                    if (!isQuestRunning(context.quest.id) || !current?.userStatus?.enrolledAt || isQuestUserStatusCompleted(current.userStatus) || isQuestExpired(current)) continue;
+                    if (!quests.has(current.id)) quests.set(current.id, { applicationId: context.applicationId });
+                }
+            } catch (error) {
+                console.error("[Quest] Failed to select activity quests:", error);
+            }
+            return quests;
+        };
+        manager.getActivelyProgressingActivityQuests = activitySelector;
+    }
 
-    await runHeartbeatQuest(context, sendHeartbeat);
+    // Discord owns the timer map, so launching a real activity reuses the same heartbeat loop.
+    activityQuests.set(quest.id, context);
+
+    const onFailure = ({ questId, error }: any) => {
+        if (questId !== quest.id || runningQuest.cancelled || runningQuests.get(quest.id) !== runningQuest) return;
+        FluxDispatcher.wait(() => {
+            if (!runningQuest.cancelled && runningQuests.get(quest.id) === runningQuest) failQuest(context, error);
+        });
+    };
+    FluxDispatcher.subscribe("QUESTS_SEND_HEARTBEAT_FAILURE", onFailure);
+
+    runningQuest.cleanup = () => {
+        FluxDispatcher.unsubscribe("QUESTS_SEND_HEARTBEAT_FAILURE", onFailure);
+        activityQuests.delete(quest.id);
+        if (activityQuests.size === 0 && manager.getActivelyProgressingActivityQuests === activitySelector) {
+            manager.getActivelyProgressingActivityQuests = realActivitySelector;
+        }
+        if (!manager.getActivelyProgressingActivityQuests().has(quest.id)) {
+            manager.terminateHeartbeat(quest.id, "PLAY_ACTIVITY");
+        }
+    };
+
+    manager.initiateHeartbeat(quest.id, "PLAY_ACTIVITY", { applicationId });
+
+    const watchForCompletion = () => {
+        if (!isQuestRunning(quest.id)) return;
+        const current = getQuestById(quest.id);
+        if (isQuestUserStatusCompleted(current?.userStatus)) {
+            completeQuest(context);
+            return;
+        }
+        if (!current || isQuestExpired(current)) {
+            failQuest(context, new Error("Quest expired or is no longer available"));
+            return;
+        }
+        runningQuest.progressTimeout = setTimeout(() => {
+            void runQuestStep(context, watchForCompletion);
+        }, QUEST_WATCH_INTERVAL_MS);
+    };
+    watchForCompletion();
 }
