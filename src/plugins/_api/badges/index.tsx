@@ -75,6 +75,7 @@ async function loadBadges(noCache = false) {
     }
 
     DonorBadges = fetchedBadges;
+    DirectoryBadges = {};
 }
 
 let intervalId: any;
